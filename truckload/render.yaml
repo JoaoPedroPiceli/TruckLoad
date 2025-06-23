@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: truckload-api
+    env: python
+    buildCommand: ""
+    startCommand: uvicorn api.mongo_truckload:app --host=0.0.0.0 --port=10000
+    plan: free
+    envVars:
+      - key: MONGO_URI
+        value: mongodb+srv://joaopedropiceli:88911121Erica@truckload.hn4bvsc.mongodb.net/truckload_db?retryWrites=true&w=majority
