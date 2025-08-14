@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/tela_inicial.dart'; // Corrigido para o nome correto
+import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
 
 void main() {
   runApp(const TruckLoadApp());
@@ -17,8 +17,7 @@ class TruckLoadApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      // Tela inicial do app
-      home: const TelaInicial(),
+      home: const TelaMenu(),
     );
   }
 }

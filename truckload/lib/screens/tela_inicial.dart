@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truckload/screens/cadastro_screen.dart';
+import 'package:truckload/screens/tela_login.dart';
 
 class TelaInicial extends StatelessWidget {
   const TelaInicial({super.key});
@@ -7,7 +8,7 @@ class TelaInicial extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE6F0FA), // Azul claro
+      backgroundColor: const Color(0xFFE6F0FA),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -21,13 +22,11 @@ class TelaInicial extends StatelessWidget {
                 ),
                 padding: const EdgeInsets.all(16.0),
                 child: Image.asset(
-                  'assets/logo.png', // Ajuste esse caminho conforme sua logo
+                  'assets/logo.png',
                   height: 120,
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Texto de boas-vindas
               const Text(
                 'Seja bem vindo!',
                 style: TextStyle(
@@ -38,12 +37,17 @@ class TelaInicial extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // Botão Login
+              // Botão Login — Navega para LoginScreen
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: Navegar para tela de login futuramente
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -56,6 +60,8 @@ class TelaInicial extends StatelessWidget {
                   child: const Text('LOG IN'),
                 ),
               ),
+
+
               const SizedBox(height: 16),
 
               // Botão Criar Conta
@@ -81,9 +87,9 @@ class TelaInicial extends StatelessWidget {
                   child: const Text('CRIAR CONTA'),
                 ),
               ),
+
               const SizedBox(height: 8),
 
-              // Texto informativo
               const Text(
                 'NÃO TEM UMA CONTA?',
                 style: TextStyle(fontSize: 12, color: Colors.black54),

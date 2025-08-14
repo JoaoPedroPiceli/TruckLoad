@@ -131,12 +131,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             _inputField(Icons.email, 'E-mail', _emailController),
             _inputField(Icons.badge, 'CPF ou CNPJ', _cpfCnpjController),
             _inputField(Icons.phone, 'Telefone', _telefoneController),
-            _inputField(
-              Icons.lock,
-              'Senha',
-              _senhaController,
-              isPassword: true,
-            ),
+            _inputField(Icons.lock, 'Senha', _senhaController, isPassword: true),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -167,7 +162,12 @@ class _CadastroScreenState extends State<CadastroScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                // TODO: Navegar para tela de login
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LoginScreen(),
+                  ),
+                );
               },
               child: const Text(
                 'Já possui uma conta? Entrar',
