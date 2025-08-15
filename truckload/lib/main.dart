@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
+
+// TELAS
+import 'package:truckload/screens/tela_inicial.dart';
+import 'package:truckload/screens/tela_login.dart';
+import 'package:truckload/screens/cadastro_screen.dart';
+import 'package:truckload/screens/caminhoneiros/tela_menu.dart' as cam;
+import 'package:truckload/screens/empresas/tela_menuEmpresa.dart' as emp;
 
 void main() {
   runApp(const TruckLoadApp());
@@ -17,7 +23,13 @@ class TruckLoadApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      home: const TelaMenu(),
+      home: const TelaInicial(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/cadastro': (context) => const CadastroScreen(),
+        '/menuCaminhoneiro': (context) => const cam.TelaMenu(),
+        '/menuEmpresa': (context) => const emp.TelaMenuEmpresa(),
+      },
     );
   }
 }
