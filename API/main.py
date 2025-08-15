@@ -13,7 +13,7 @@ import os
 # =============================================================================
 app = FastAPI(title="TruckLoad API", version="1.0.0")
 
-# Em produção: troque "*" pelos seus domínios/apps (ex.: ["https://app.truckload.com.br"])
+# Em produção, substitua "*" pelos seus domínios/apps permitidos
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -51,8 +51,11 @@ def is_valid_objectid(s: str) -> bool:
         return False
 
 def to_public(doc: dict) -> dict:
+    """Remove campos sensíveis e converte _id -> id antes de devolver."""
     d = dict(doc)
     d["id"] = str(d.pop("_id"))
+    # comente a linha abaixo se quiser devolver a senha nas respostas (não recomendado)
+    d.pop("senha", None)
     return d
 
 # =============================================================================
@@ -64,6 +67,7 @@ class CaminhoneiroCreate(BaseModel):
     cpf: str = Field(..., min_length=3, max_length=32)
     telefone: str = Field(..., min_length=3, max_length=32)
     tipoCaminhao: str = Field(..., min_length=2, max_length=64)
+    senha: str = Field(..., min_length=1, max_length=128)
 
 class CaminhoneiroUpdate(BaseModel):
     nome: Optional[str] = Field(None, min_length=2, max_length=120)
@@ -71,6 +75,7 @@ class CaminhoneiroUpdate(BaseModel):
     cpf: Optional[str] = Field(None, min_length=3, max_length=32)
     telefone: Optional[str] = Field(None, min_length=3, max_length=32)
     tipoCaminhao: Optional[str] = Field(None, min_length=2, max_length=64)
+    senha: Optional[str] = Field(None, min_length=1, max_length=128)
 
 class EmpresaCreate(BaseModel):
     nome: str = Field(..., min_length=2, max_length=120)
@@ -78,6 +83,7 @@ class EmpresaCreate(BaseModel):
     cnpj: str = Field(..., min_length=3, max_length=32)
     telefone: str = Field(..., min_length=3, max_length=32)
     endereco: str = Field(..., min_length=3, max_length=255)
+    senha: str = Field(..., min_length=1, max_length=128)
 
 class EmpresaUpdate(BaseModel):
     nome: Optional[str] = Field(None, min_length=2, max_length=120)
@@ -85,13 +91,33 @@ class EmpresaUpdate(BaseModel):
     cnpj: Optional[str] = Field(None, min_length=3, max_length=32)
     telefone: Optional[str] = Field(None, min_length=3, max_length=32)
     endereco: Optional[str] = Field(None, min_length=3, max_length=255)
+    senha: Optional[str] = Field(None, min_length=1, max_length=128)
+
+class LoginPayload(BaseModel):
+    email: EmailStr
+    senha: str = Field(..., min_length=1)
+    tipo: str = Field(..., pattern="^(caminhoneiro|empresa)$")
 
 # =============================================================================
-# Healthcheck
+# Health
 # =============================================================================
 @app.get("/health")
 def health():
     return {"ok": True, "ts": datetime.utcnow().isoformat()}
+
+# =============================================================================
+# Auth (senha em texto claro — somente para testes!)
+# =============================================================================
+@app.post("/auth/login")
+def login(payload: LoginPayload = Body(...)):
+    coll = db.caminhoneiros if payload.tipo == "caminhoneiro" else db.empresas
+    user = coll.find_one({"email": payload.email})
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    # valida em texto claro
+    if user.get("senha") != payload.senha:
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    return {"msg": "ok", "tipo": payload.tipo, "user": to_public(user)}
 
 # =============================================================================
 # Caminhoneiros
@@ -133,8 +159,7 @@ def atualizar_caminhoneiro(id: str, payload: CaminhoneiroUpdate = Body(...)):
         raise HTTPException(status_code=400, detail="Email já cadastrado")
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Caminhoneiro não encontrado")
-    doc = db.caminhoneiros.find_one({"_id": ObjectId(id)})
-    return to_public(doc)
+    return to_public(db.caminhoneiros.find_one({"_id": ObjectId(id)}))
 
 @app.delete("/caminhoneiros/{id}", status_code=204)
 def remover_caminhoneiro(id: str):
@@ -182,11 +207,10 @@ def atualizar_empresa(id: str, payload: EmpresaUpdate = Body(...)):
     try:
         res = db.empresas.update_one({"_id": ObjectId(id)}, {"$set": update})
     except DuplicateKeyError:
-        raise HTTPException(status_code=400, detail="Email já cadastrado")
+        raise HTTPException(status_code=400, detail="Email já cadastrada")
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
-    doc = db.empresas.find_one({"_id": ObjectId(id)})
-    return to_public(doc)
+    return to_public(db.empresas.find_one({"_id": ObjectId(id)}))
 
 @app.delete("/empresas/{id}", status_code=204)
 def remover_empresa(id: str):
