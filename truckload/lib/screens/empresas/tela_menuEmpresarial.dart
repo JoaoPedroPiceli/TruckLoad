@@ -1,9 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:truckload/screens/empresas/tela_adicionarcarga.dart';
-import 'package:truckload/screens/empresas/tela_cargasRealizadas.dart';
-import 'package:truckload/screens/empresas/tela_cargasPendentes.dart';
-import 'package:truckload/screens/empresas/tela_BancarioEmpresarial.dart';
-import 'package:truckload/screens/empresas/tela_perfilEmpresarial.dart';
 
 class TelaMenuEmpresa extends StatelessWidget {
   const TelaMenuEmpresa({super.key});
@@ -11,16 +6,13 @@ class TelaMenuEmpresa extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE6F0FA), // Fundo azul claro
+      backgroundColor: const Color(0xFFE6F0FA),
       body: Column(
         children: [
           const SizedBox(height: 60),
           const Text(
             'MENU EMPRESA',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -28,80 +20,22 @@ class TelaMenuEmpresa extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 30),
               padding: const EdgeInsets.symmetric(vertical: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFB0CCE5), // Caixa azul
+                color: const Color(0xFFB0CCE5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 children: [
-                  menuItem(
-                    context,
-                    Icons.business_center,
-                    'Perfil empresarial',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TelaPerfilEmpresarial(),
-                        ),
-                      );
-                    },
-                  ),
+                  menuItem(Icons.add_circle_outline, 'Adicionar cargas'),
+                  divider(),
+                  menuItem(Icons.check_circle_outline, 'Cargas Realizadas'),
+                  divider(),
+                  menuItem(Icons.business_center, 'Perfil empresarial'),
+                  divider(),
+                  menuItem(Icons.pending_actions_outlined, 'Cargas Pendentes'),
                   divider(),
                   menuItem(
-                    context,
-                    Icons.add_circle_outline,
-                    'Adicionar cargas',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TelaAdicionarCarga(),
-                        ),
-                      );
-                    },
-                  ),
-                  divider(),
-                  menuItem(
-                    context,
-                    Icons.check_circle_outline,
-                    'Cargas Realizadas',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TelaCargaRealizada(),
-                        ),
-                      );
-                    },
-                  ),
-                  divider(),
-                  menuItem(
-                    context,
-                    Icons.pending_actions_outlined,
-                    'Cargas Pendentes',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TelaCargaPendente(),
-                        ),
-                      );
-                    },
-                  ),
-                  divider(),
-                  menuItem(
-                    context,
                     Icons.account_balance_wallet_outlined,
                     'Sistema bancário',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const TelaSistemaBancarioEmpresarial(),
-                        ),
-                      );
-                    },
                   ),
                   divider(),
                   const Spacer(),
@@ -115,22 +49,18 @@ class TelaMenuEmpresa extends StatelessWidget {
     );
   }
 
-  Widget menuItem(
-      BuildContext context, IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-        child: Row(
-          children: [
-            Icon(icon, size: 28, color: Colors.black87),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
+  Widget menuItem(IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      child: Row(
+        children: [
+          Icon(icon, size: 28, color: Colors.black87),
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }

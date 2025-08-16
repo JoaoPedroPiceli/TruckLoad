@@ -18,7 +18,13 @@ class TruckLoadApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      home: TelaMenu(),
+      home: const TelaInicial(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/cadastro': (context) => const CadastroScreen(),
+        '/menuCaminhoneiro': (context) => const cam.TelaMenu(),
+        '/menuEmpresa': (context) => const emp.TelaMenuEmpresarial(),
+      },
     );
   }
 }

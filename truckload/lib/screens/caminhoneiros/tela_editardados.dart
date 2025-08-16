@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
 
-// --- Tela Alterar Dados ---
 class AlterarDados extends StatefulWidget {
   const AlterarDados({super.key});
 

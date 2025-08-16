@@ -1,7 +1,15 @@
+// lib/screens/tela_login.dart
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'caminhoneiros/tela_menu.dart';
+
+/// Base URL da API (pode vir por --dart-define)
+const String kApiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'https://truckload-u4nu.onrender.com',
+);
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,142 +19,315 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _senhaController = TextEditingController();
-  String? tipoConta; // nulo
+  final _emailCtrl = TextEditingController();
+  final _senhaCtrl = TextEditingController();
 
-  bool get camposPreenchidos =>
-      _usernameController.text.isNotEmpty &&
-      _senhaController.text.isNotEmpty &&
-      tipoConta != null;
+  String _tipoConta = 'caminhoneiro'; // 'caminhoneiro' | 'empresa'
+  bool _loading = false;
+  final _formKey = GlobalKey<FormState>();
 
-  Future<void> verificarLogin() async {
-    final url = Uri.parse(
-      tipoConta == 'caminhoneiro'
-          ? 'http://10.0.2.2:8000/caminhoneiros/login/'
-          : 'http://10.0.2.2:8000/empresas/login/',
-    ); // URL de login com base no tipo de conta
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _senhaCtrl.dispose();
+    super.dispose();
+  }
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'username': _usernameController.text,
-        'senha': _senhaController.text,
-      }), // Requisição POST com username e senha
-    );
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    if (response.statusCode == 200) {
+    setState(() => _loading = true);
+    final email = _emailCtrl.text.trim();
+    final senha = _senhaCtrl.text;
+
+    try {
+      // 1) Tenta endpoint oficial (se existir no backend)
+      final loginUrl = Uri.parse('$kApiBaseUrl/auth/login');
+      final loginBody = json.encode({
+        'email': email,
+        'senha': senha,
+        'tipo': _tipoConta, // 'caminhoneiro' | 'empresa'
+      });
+
+      http.Response? resp;
+      try {
+        resp = await http
+            .post(
+              loginUrl,
+              headers: {'Content-Type': 'application/json'},
+              body: loginBody,
+            )
+            .timeout(const Duration(seconds: 20));
+      } on TimeoutException {
+        resp = null; // segue pro fallback
+      } on http.ClientException {
+        resp = null; // segue pro fallback
+      }
+
+      if (resp != null && resp.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login realizado com sucesso!')),
+        );
+        await _abrirMenu();
+        return;
+      }
+
+      // 2) Fallback: busca lista e valida email + senha em texto claro
+      final listUrl = Uri.parse(
+        _tipoConta == 'caminhoneiro'
+            ? '$kApiBaseUrl/caminhoneiros/?limit=200'
+            : '$kApiBaseUrl/empresas/?limit=200',
+      );
+
+      final listResp = await http
+          .get(listUrl)
+          .timeout(const Duration(seconds: 20));
+
+      if (listResp.statusCode == 200) {
+        final decoded = json.decode(listResp.body);
+
+        // esperado preferencialmente: {"results":[...]}
+        List results = [];
+        if (decoded is Map && decoded['results'] is List) {
+          results = decoded['results'] as List;
+        } else if (decoded is List) {
+          // caso API retorne array diretamente
+          results = decoded;
+        }
+
+        Map<String, dynamic>? found;
+        for (final e in results) {
+          if (e is Map &&
+              (e['email']?.toString().toLowerCase() == email.toLowerCase())) {
+            found = Map<String, dynamic>.from(e);
+            break;
+          }
+        }
+
+        if (found == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Usuário não encontrado.')),
+          );
+          return;
+        }
+
+        // Verifica senha armazenada no documento (campo "senha")
+        final senhaBanco = (found['senha'] ?? '').toString();
+        if (senhaBanco == senha) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login realizado com sucesso!')),
+          );
+          await _abrirMenu();
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Senha incorreta.')));
+        }
+      } else {
+        String msg = 'Erro ${listResp.statusCode} ao consultar usuários.';
+        try {
+          final d = json.decode(listResp.body);
+          if (d is Map && d['detail'] != null) msg = d['detail'].toString();
+        } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } on TimeoutException {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login realizado com sucesso!')),
+        const SnackBar(content: Text('Servidor demorou para responder.')),
       );
-      Navigator.push( // Muda para a TelaMenu
-        context,
-        MaterialPageRoute(builder: (context) => const TelaMenu()),
-      );
-    } else {
+    } on http.ClientException catch (e) {
+      debugPrint('ClientException: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuário ou senha inválidos.')),
+        const SnackBar(content: Text('Falha de rede ao conectar.')),
       );
+    } catch (e) {
+      debugPrint('Erro inesperado no login: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao conectar ao servidor.')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Widget _inputField(String hint, TextEditingController controller, {bool isPassword = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword,
-        decoration: InputDecoration(
-          hintText: hint,
-          border: const UnderlineInputBorder(),
-        ),
-        onChanged: (_) => setState(() {}), // Atualiza estado ao digitar
-      ),
-    );
+  Future<void> _abrirMenu() async {
+    // As rotas precisam existir no MaterialApp
+    if (_tipoConta == 'caminhoneiro') {
+      Navigator.pushReplacementNamed(context, '/menuCaminhoneiro');
+    } else {
+      Navigator.pushReplacementNamed(context, '/menuEmpresa');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE6F0FA),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 60),
-        child: Column(
-          children: [
-            Image.asset('assets/logo.png', height: 120),
-            const SizedBox(height: 20),
-            const Text(
-              'Log In',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo),
-            ),
-            const SizedBox(height: 30),
-            _inputField('Username', _usernameController),
-            _inputField('Senha', _senhaController, isPassword: true),
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Esqueci a senha',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Botões de tipo de conta
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          child: Form(
+            key: _formKey,
+            child: Column(
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() => tipoConta = 'caminhoneiro');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        tipoConta == 'caminhoneiro' ? Colors.blue : Colors.white,
-                    foregroundColor:
-                        tipoConta == 'caminhoneiro' ? Colors.white : Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                // Logo
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.blueAccent, width: 2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('CAMINHONEIRO'),
+                  padding: const EdgeInsets.all(16),
+                  child: Image.asset('assets/logo.png', height: 100),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() => tipoConta = 'empresa');
+                const SizedBox(height: 16),
+
+                Text(
+                  'Entrar',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+
+                const SizedBox(height: 16),
+
+                // E-mail
+                _input(
+                  icon: Icons.email,
+                  hint: 'E-mail',
+                  controller: _emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) {
+                    final val = v?.trim() ?? '';
+                    if (val.isEmpty) return 'Informe o e-mail';
+                    if (!val.contains('@')) return 'E-mail inválido';
+                    return null;
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        tipoConta == 'empresa' ? Colors.blue : Colors.white,
-                    foregroundColor:
-                        tipoConta == 'empresa' ? Colors.white : Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                ),
+
+                // Senha
+                _input(
+                  icon: Icons.lock,
+                  hint: 'Senha',
+                  controller: _senhaCtrl,
+                  isPassword: true,
+                  validator: (v) {
+                    final val = v ?? '';
+                    if (val.isEmpty) return 'Informe a senha';
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                // Tipo de conta
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Caminhoneiro'),
+                      selected: _tipoConta == 'caminhoneiro',
+                      onSelected: (s) =>
+                          setState(() => _tipoConta = 'caminhoneiro'),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: const Text('Empresa'),
+                      selected: _tipoConta == 'empresa',
+                      onSelected: (s) => setState(() => _tipoConta = 'empresa'),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Botão Login
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('LOG IN'),
                   ),
-                  child: const Text('EMPRESA'),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Link criar conta -> rota /cadastro
+                TextButton(
+                  onPressed: _loading
+                      ? null
+                      : () => Navigator.pushNamed(context, '/cadastro'),
+                  child: const Text('Não tem conta? Criar'),
+                ),
+
+                const SizedBox(height: 12),
+                Text(
+                  'API: $kApiBaseUrl',
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
 
-            const SizedBox(height: 40),
-
-            // Botão de ENTRAR
-            ElevatedButton(
-              onPressed: camposPreenchidos ? verificarLogin : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: camposPreenchidos ? Colors.indigo : Colors.grey[400],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 80),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: const Text('ENTRAR'),
-            ),
-          ],
+  Widget _input({
+    required IconData icon,
+    required String hint,
+    required TextEditingController controller,
+    bool isPassword = false,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isPassword,
+        keyboardType: keyboardType,
+        validator: validator,
+        decoration: InputDecoration(
+          icon: Icon(icon),
+          border: InputBorder.none,
+          hintText: hint,
         ),
       ),
     );
