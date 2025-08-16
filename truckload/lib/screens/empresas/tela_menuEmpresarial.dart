@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:truckload/screens/empresarial/tela_adicionarCarga.dart';
-import 'package:truckload/screens/empresarial/tela_cargasRealizadas.dart';
-import 'package:truckload/screens/empresarial/tela_cargaPendente.dart';
-import 'package:truckload/screens/empresarial/tela_sistemaBancarioEmpresarial.dart';
-import 'package:truckload/screens/empresarial/tela_perfilEmpresarial.dart';
+import 'package:truckload/screens/empresas/tela_adicionarcarga.dart';
+import 'package:truckload/screens/empresas/tela_cargasRealizadas.dart';
+import 'package:truckload/screens/empresas/tela_cargasPendentes.dart';
+import 'package:truckload/screens/empresas/tela_BancarioEmpresarial.dart';
+import 'package:truckload/screens/empresas/tela_perfilEmpresarial.dart';
 
 class TelaMenuEmpresa extends StatelessWidget {
   const TelaMenuEmpresa({super.key});

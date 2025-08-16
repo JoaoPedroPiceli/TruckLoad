@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
+import 'package:truckload/screens/tela_inicial.dart';
 
 void main() {
   runApp(const TruckLoadApp());
@@ -17,7 +18,7 @@ class TruckLoadApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      home: const TelaMenu(),
+      home: TelaMenu(),
     );
   }
 }

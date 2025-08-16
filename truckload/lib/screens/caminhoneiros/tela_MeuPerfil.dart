@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'tela_menu.dart'; 
+import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
+import 'package:truckload/screens/caminhoneiros/tela_editardados.dart';
 
 class TelaMeuPerfil extends StatelessWidget {
   final List<double> avaliacoes = [4.0, 5.0, 3.5, 4.5];
@@ -27,12 +28,12 @@ class TelaMeuPerfil extends StatelessWidget {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => TelaMenu()),
+              MaterialPageRoute(builder: (context) => const TelaMenu()),
             );
           },
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView( // 👈 evita overflow
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -69,10 +70,15 @@ class TelaMeuPerfil extends StatelessWidget {
               label: 'Descrição:',
               value: descricao,
             ),
-            const Spacer(),
+            const SizedBox(height: 30), // 👈 substitui Spacer()
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.pushNamed(context, '/editarPerfil');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AlterarDados(),
+                  ),
+                );
               },
               icon: const Icon(Icons.edit, color: Colors.black),
               label: const Text(

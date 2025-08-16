@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:truckload/screens/tela_login.dart';
 
 /// Base URL da API (pode vir por --dart-define)
 const String kApiBaseUrl = String.fromEnvironment(
@@ -165,7 +166,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const LoginScreen(),
+                    builder: (context) => const LoginScreen (),
                   ),
                 );
               },
