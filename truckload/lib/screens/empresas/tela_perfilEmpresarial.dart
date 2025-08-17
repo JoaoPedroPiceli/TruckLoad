@@ -103,7 +103,7 @@ class TelaPerfilEmpresa extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
-              color: Colors.blue[100],
+              color: const Color(0xFFB0CCE5),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Row(

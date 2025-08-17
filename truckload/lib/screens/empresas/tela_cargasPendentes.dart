@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
 import 'package:intl/intl.dart';
 import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
 import 'package:truckload/screens/empresas/tela_editarCarga.dart';
+import 'package:truckload/screens/empresas/tela_deletarCargas.dart';
 
 // modelo de Carga
 class Carga {
@@ -54,6 +55,7 @@ class _CargasPendentesState extends State<CargasPendentes> {
     List<Carga> aprovadas = cargas.where((c) => c.aprovada).toList();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFE6F0FA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -73,58 +75,49 @@ class _CargasPendentesState extends State<CargasPendentes> {
         centerTitle: true,
       ),
       extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFD4E1FF),  Color(0xFFE6F0FA)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 80, 12, 12),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Pendentes
-                if (pendentes.isNotEmpty) ...[
-                  const Text(
-                    "Cargas Pendentes",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w600,
-                    ),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 80, 12, 12),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pendentes
+              if (pendentes.isNotEmpty) ...[
+                const Text(
+                  "Cargas Pendentes",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 8),
-                  Column(
-                    children: pendentes
-                        .map((c) => cargaCard(context, c, pendente: true))
-                        .toList(),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-
-                // Aprovadas
-                if (aprovadas.isNotEmpty) ...[
-                  const Text(
-                    "Cargas Aprovadas",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Column(
-                    children: aprovadas
-                        .map((c) => cargaCard(context, c, pendente: false))
-                        .toList(),
-                  ),
-                ],
+                ),
+                const SizedBox(height: 8),
+                Column(
+                  children: pendentes
+                      .map((c) => cargaCard(context, c, pendente: true))
+                      .toList(),
+                ),
+                const SizedBox(height: 20),
               ],
-            ),
+
+              // Aprovadas
+              if (aprovadas.isNotEmpty) ...[
+                const Text(
+                  "Cargas Aprovadas",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Column(
+                  children: aprovadas
+                      .map((c) => cargaCard(context, c, pendente: false))
+                      .toList(),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -139,7 +132,7 @@ class _CargasPendentesState extends State<CargasPendentes> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF9CB9E3),
+        color: const Color(0xFFB0CCE5),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -197,17 +190,17 @@ class _CargasPendentesState extends State<CargasPendentes> {
                     icon: const Icon(Icons.edit, color: Colors.white),
                     onPressed: () {
                       Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                      builder: (context) => EditarCarga(
-                      carga: {
-                      "origem": carga.origem,
-                      "destino": carga.destino,
-                      "peso": carga.peso,
-                      "data": carga.data,
-                      "motorista": carga.motorista,
-                      "aprovada": carga.aprovada,
-                          },
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditarCarga(
+                            carga: {
+                              "origem": carga.origem,
+                              "destino": carga.destino,
+                              "peso": carga.peso,
+                              "data": carga.data,
+                              "motorista": carga.motorista,
+                              "aprovada": carga.aprovada,
+                            },
                             motoristaSelecionado: carga.motorista != null,
                           ),
                         ),
@@ -217,9 +210,18 @@ class _CargasPendentesState extends State<CargasPendentes> {
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      setState(() {
-                        cargas.remove(carga);
-                      });
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TelaDeletarCarga(
+                            onDelete: () {
+                              setState(() {
+                                cargas.remove(carga); // só remove depois que confirmar na tela
+                              });
+                            },
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ],

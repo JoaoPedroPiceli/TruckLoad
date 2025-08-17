@@ -75,7 +75,7 @@ class _CargasRealizadasState extends State<CargasRealizadas> {
   Widget cargaCard(Carga carga, int index) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      color: const Color(0xFF9CB9E3),
+      color:  const Color(0xFFB0CCE5),
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 3,
       child: Padding(
