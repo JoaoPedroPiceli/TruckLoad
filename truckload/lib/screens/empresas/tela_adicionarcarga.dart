@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
 
 class AdicionarCarga extends StatefulWidget {
   const AdicionarCarga({super.key});
@@ -70,6 +71,26 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // AppBar com botão de menu
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.black),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const TelaMenuEmpresa()),
+            );
+          },
+        ),
+        title: const Text(
+          "Adicionar Carga",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        centerTitle: true,
+      ),
+
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -84,16 +105,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Center(
-                  child: Text(
-                    'Adicionar Nova Carga',
-                    style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black),
-                  ),
-                ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 10),
 
                 // Tipo de carga
                 campoDropdown("Tipo de Carga", ["Seca", "Frigorífica", "Granel"],
@@ -102,12 +114,12 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
                 }),
                 const SizedBox(height: 30),
 
-                campoPadrao("Descrição", descricaoController,
-                    erroDescricao, Icons.assignment_outlined),
+                campoPadrao("Descrição", descricaoController, erroDescricao,
+                    Icons.assignment_outlined),
                 const SizedBox(height: 30),
 
-                campoAutoComplete("Local de origem", origemController,
-                    erroOrigem, Icons.location_on_outlined),
+                campoAutoComplete("Local de origem", origemController, erroOrigem,
+                    Icons.location_on_outlined),
                 const SizedBox(height: 30),
 
                 campoAutoComplete("Local de destino", destinoController,
@@ -124,7 +136,6 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
                     erroRegras, Icons.warning_amber_outlined),
                 const SizedBox(height: 40),
 
-                // Botão
                 Center(
                   child: ElevatedButton(
                     onPressed: () {
@@ -136,7 +147,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
                           erroPeso ||
                           erroPreco ||
                           erroRegras)) {
-                        // Aqui vai a lógica para enviar os dados
+                        // enviar os dados
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                               content: Text("Carga adicionada com sucesso!")),
@@ -333,7 +344,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
   }
 }
 
-// Formatter para preço no formato 0,00
+// preço no formato 0,00
 class CurrencyInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(

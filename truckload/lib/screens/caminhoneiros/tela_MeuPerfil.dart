@@ -70,7 +70,7 @@ class TelaMeuPerfil extends StatelessWidget {
               label: 'Descrição:',
               value: descricao,
             ),
-            const SizedBox(height: 30), // 👈 substitui Spacer()
+            const SizedBox(height: 30), // substitui Spacer()
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.push(

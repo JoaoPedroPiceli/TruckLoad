@@ -1,168 +1,232 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
+import 'package:truckload/screens/empresas/tela_editarCarga.dart';
+
+// modelo de Carga
+class Carga {
+  final String origem;
+  final String destino;
+  final double peso;
+  final DateTime data;
+  String? motorista;
+  bool aprovada;
+
+  Carga({
+    required this.origem,
+    required this.destino,
+    required this.peso,
+    required this.data,
+    this.aprovada = false,
+    this.motorista,
+  });
+}
 
 class CargasPendentes extends StatefulWidget {
+  const CargasPendentes({super.key});
+
   @override
-  _CargasPendentesState createState() => _CargasPendentesState();
+  State<CargasPendentes> createState() => _CargasPendentesState();
 }
 
 class _CargasPendentesState extends State<CargasPendentes> {
-  List<Map<String, String>> esperandoAprovacao = [
-    {
-      "nome": "Nome da Empresa",
-      "origem": "São Paulo",
-      "destino": "Rio de Janeiro",
-      "peso": "500kg",
-      "data": "15/08/2025",
-    },
+  final List<Carga> cargas = [
+    Carga(
+      origem: 'São Paulo',
+      destino: 'Rio de Janeiro',
+      peso: 1200,
+      data: DateTime.now(),
+      aprovada: false,
+    ),
+    Carga(
+      origem: 'Curitiba',
+      destino: 'Porto Alegre',
+      peso: 900,
+      data: DateTime.now().subtract(const Duration(days: 2)),
+      aprovada: true,
+      motorista: "Carlos",
+    ),
   ];
-
-  List<Map<String, String>> cargasAprovadas = [
-    {
-      "nome": "João Caminhoneiro",
-      "origem": "Belo Horizonte",
-      "destino": "Brasília",
-      "peso": "800kg",
-    },
-  ];
-
-  void selecionarCaminhoneiro(int index) {
-    setState(() {
-      var carga = esperandoAprovacao.removeAt(index);
-      carga["nome"] = "Nome do Caminhoneiro"; // Aqui poderia ser selecionado de uma lista
-      cargasAprovadas.add(carga);
-    });
-  }
-
-  void deletarCarga(List<Map<String, String>> lista, int index) {
-    setState(() {
-      lista.removeAt(index);
-    });
-  }
-
-  void editarCarga(Map<String, String> carga) {
-    // Aqui você pode abrir uma tela para edição
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Função de editar carga ainda não implementada")),
-    );
-  }
-
-  Widget cardCarga({
-    required Map<String, String> carga,
-    required VoidCallback onDelete,
-    required VoidCallback onEdit,
-    VoidCallback? onSelecionar,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue[100],
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(radius: 25, child: Icon(Icons.person, size: 30)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("CARGA", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text("Origem: ${carga["origem"]}"),
-                Text("Destino: ${carga["destino"]}"),
-                Text("Peso: ${carga["peso"]}"),
-                if (carga.containsKey("data")) Text("Data: ${carga["data"]}"),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    if (onSelecionar != null)
-                      ElevatedButton(
-                        onPressed: onSelecionar,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                        child: const Text("Selecionar Caminhoneiro",
-                            style: TextStyle(color: Colors.black)),
-                      ),
-                    const SizedBox(width: 6),
-                    ElevatedButton(
-                      onPressed: onEdit,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                      child: const Text("Editar Carga",
-                          style: TextStyle(color: Colors.black)),
-                    ),
-                    const SizedBox(width: 6),
-                    ElevatedButton(
-                      onPressed: onDelete,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                      child: const Text("Deletar Carga",
-                          style: TextStyle(color: Colors.black)),
-                    ),
-                  ],
-                )
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    List<Carga> pendentes = cargas.where((c) => !c.aprovada).toList();
+    List<Carga> aprovadas = cargas.where((c) => c.aprovada).toList();
+
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu),
+          icon: const Icon(Icons.menu, color: Colors.black87),
           onPressed: () {
-            // Abrir tela de menu empresarial
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Abrir Menu Empresarial")),
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const TelaMenuEmpresa()),
             );
           },
         ),
-        title: const Text("Cargas Postadas:"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: const Text(
+          "Gerenciar Cargas",
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
-      backgroundColor: const Color(0xFFEAF3FA),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Esperando aprovação:",
-                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            for (int i = 0; i < esperandoAprovacao.length; i++)
-              cardCarga(
-                carga: esperandoAprovacao[i],
-                onSelecionar: () => selecionarCaminhoneiro(i),
-                onEdit: () => editarCarga(esperandoAprovacao[i]),
-                onDelete: () => deletarCarga(esperandoAprovacao, i),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFD4E1FF),  Color(0xFFE6F0FA)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 80, 12, 12),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Pendentes
+                if (pendentes.isNotEmpty) ...[
+                  const Text(
+                    "Cargas Pendentes",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Column(
+                    children: pendentes
+                        .map((c) => cargaCard(context, c, pendente: true))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Aprovadas
+                if (aprovadas.isNotEmpty) ...[
+                  const Text(
+                    "Cargas Aprovadas",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Column(
+                    children: aprovadas
+                        .map((c) => cargaCard(context, c, pendente: false))
+                        .toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget cargaCard(BuildContext context, Carga carga,
+      {required bool pendente}) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF9CB9E3),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 6,
+            offset: const Offset(2, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // linha superior
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.local_shipping,
+                    size: 28, color: Colors.grey[800]),
               ),
-            const SizedBox(height: 20),
-            const Text("Cargas aprovadas:",
-                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            for (int i = 0; i < cargasAprovadas.length; i++)
-              cardCarga(
-                carga: cargasAprovadas[i],
-                onEdit: () => editarCarga(cargasAprovadas[i]),
-                onDelete: () => deletarCarga(cargasAprovadas, i),
+              const SizedBox(width: 12),
+
+              // dados da carga
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'CARGA',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text("Origem: ${carga.origem}"),
+                    Text("Destino: ${carga.destino}"),
+                    Text("Peso: ${carga.peso} kg"),
+                    Text("Data: ${dateFormat.format(carga.data)}"),
+                    Text(
+                      "Motorista: ${carga.motorista ?? 'Esperando seleção'}",
+                      style: const TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ),
               ),
-            const SizedBox(height: 40),
-            Center(
-              child: Column(
+
+              // Botões editar/deletar
+              Column(
                 children: [
-                  Icon(Icons.local_shipping, size: 60, color: Colors.blue),
-                  const SizedBox(height: 5),
-                  const Text("TruckLoad",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    onPressed: () {
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                      builder: (context) => EditarCarga(
+                      carga: {
+                      "origem": carga.origem,
+                      "destino": carga.destino,
+                      "peso": carga.peso,
+                      "data": carga.data,
+                      "motorista": carga.motorista,
+                      "aprovada": carga.aprovada,
+                          },
+                            motoristaSelecionado: carga.motorista != null,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      setState(() {
+                        cargas.remove(carga);
+                      });
+                    },
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
