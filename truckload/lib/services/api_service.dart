@@ -7,10 +7,32 @@ const String kApiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://truckload-u4nu.onrender.com',
 );
 
+/// Cliente HTTP com timeout configurado
+final http.Client _httpClient = http.Client();
+
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
+
+  /// Fazer requisição HTTP com timeout
+  Future<http.Response> _makeRequest(
+    Future<http.Response> Function() request,
+  ) async {
+    try {
+      return await request().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Timeout: A requisição demorou muito para responder');
+        },
+      );
+    } catch (e) {
+      if (e.toString().contains('Timeout')) {
+        rethrow;
+      }
+      throw Exception('Erro de conexão: $e');
+    }
+  }
 
   /// Obter perfil completo do caminhoneiro com métricas
   Future<Map<String, dynamic>> getPerfilCaminhoneiro(String userId) async {
