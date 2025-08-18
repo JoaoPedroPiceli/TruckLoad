@@ -39,108 +39,162 @@ def obter_empresa_id(db, email):
     return None
 
 def criar_cargas_exemplo(db):
-    """Cria cargas de exemplo para as empresas"""
+    """Cria cargas de exemplo para as empresas reais"""
     
-    # Verificar se já existem cargas
-    if db.cargas_empresa.count_documents({}) > 0:
-        print("ℹ️  Já existem cargas no banco. Pulando criação...")
+    print("📦 Criando cargas de exemplo para empresas reais...")
+    
+    # Obter IDs das empresas reais
+    empresa1_id = obter_empresa_id(db, "piceli@gmail.com")
+    empresa2_id = obter_empresa_id(db, "Piceli.Piceli@gmail.com")
+    
+    if not empresa1_id:
+        print("❌ Erro: Empresa 'piceli@gmail.com' não encontrada.")
         return
     
-    print("📦 Criando cargas de exemplo...")
-    
-    # Obter IDs das empresas
-    empresa1_id = obter_empresa_id(db, "contato@abc.com")
-    empresa2_id = obter_empresa_id(db, "contato@xyz.com")
-    
-    if not empresa1_id or not empresa2_id:
-        print("❌ Erro: Empresas não encontradas. Execute a API primeiro para criar os dados de exemplo.")
+    if not empresa2_id:
+        print("❌ Erro: Empresa 'Piceli.Piceli@gmail.com' não encontrada.")
         return
     
-    # Cargas de exemplo para a primeira empresa
+    print(f"✅ Empresa 1 encontrada: {empresa1_id}")
+    print(f"✅ Empresa 2 encontrada: {empresa2_id}")
+    
+    # Cargas para a empresa 1 (piceli@gmail.com)
     cargas_empresa1 = [
         {
             "empresaId": ObjectId(empresa1_id),
-            "titulo": "Transporte de Eletrônicos",
-            "descricao": "Carga de eletrônicos diversos para loja de varejo. Requer cuidado especial no manuseio.",
+            "titulo": "Transporte de Eletrônicos para Loja",
+            "descricao": "Carga de smartphones, notebooks e tablets para loja de varejo. Requer cuidado especial no manuseio e embalagem adequada.",
             "tipoCarga": "Eletrônicos",
             "origem": "São Paulo, SP",
             "destino": "Rio de Janeiro, RJ",
-            "peso": 1500.0,
-            "preco": 2500.00,
+            "peso": 1200.0,
+            "preco": 2800.00,
             "data": datetime.now() + timedelta(days=3),
             "status": "disponivel",
+            "regras": "Manuseio cuidadoso, embalagem original preservada",
             "created_at": datetime.utcnow()
         },
         {
             "empresaId": ObjectId(empresa1_id),
-            "titulo": "Carga de Roupas",
-            "descricao": "Transporte de roupas para loja de departamentos. Carga seca e leve.",
+            "titulo": "Carga de Roupas para Shopping",
+            "descricao": "Transporte de roupas de verão para loja de departamentos. Carga seca e leve, mas volumosa.",
             "tipoCarga": "Têxtil",
             "origem": "São Paulo, SP",
             "destino": "Curitiba, PR",
             "peso": 800.0,
             "preco": 1800.00,
             "data": datetime.now() + timedelta(days=5),
-            "status": "disponivel",
+            "status": "em_transito",
+            "regras": "Proteger da umidade, empilhamento máximo 2m",
             "created_at": datetime.utcnow()
         },
         {
             "empresaId": ObjectId(empresa1_id),
-            "titulo": "Móveis para Escritório",
-            "descricao": "Transporte de móveis para escritório. Requer embalagem adequada.",
+            "titulo": "Móveis para Escritório Corporativo",
+            "descricao": "Transporte de mesas, cadeiras e armários para escritório. Requer embalagem adequada e montagem no destino.",
             "tipoCarga": "Móveis",
             "origem": "São Paulo, SP",
             "destino": "Belo Horizonte, MG",
             "peso": 2500.0,
-            "preco": 3200.00,
+            "preco": 4200.00,
             "data": datetime.now() + timedelta(days=2),
-            "status": "em_transito",
+            "status": "concluida",
+            "regras": "Embalagem individual, proteção contra arranhões",
+            "created_at": datetime.utcnow() - timedelta(days=5)
+        },
+        {
+            "empresaId": ObjectId(empresa1_id),
+            "titulo": "Produtos de Higiene para Farmácia",
+            "descricao": "Transporte de produtos de higiene pessoal e limpeza para rede de farmácias.",
+            "tipoCarga": "Higiene",
+            "origem": "São Paulo, SP",
+            "destino": "Campinas, SP",
+            "peso": 600.0,
+            "preco": 1200.00,
+            "data": datetime.now() + timedelta(days=1),
+            "status": "disponivel",
+            "regras": "Proteger da umidade, temperatura ambiente",
             "created_at": datetime.utcnow()
         }
     ]
     
-    # Cargas de exemplo para a segunda empresa
+    # Cargas para a empresa 2 (Piceli.Piceli@gmail.com)
     cargas_empresa2 = [
         {
             "empresaId": ObjectId(empresa2_id),
-            "titulo": "Produtos Químicos",
-            "descricao": "Transporte de produtos químicos industriais. Requer documentação especial.",
+            "titulo": "Produtos Químicos Industriais",
+            "descricao": "Transporte de produtos químicos para indústria. Requer documentação especial e certificados de segurança.",
             "tipoCarga": "Químicos",
             "origem": "Rio de Janeiro, RJ",
             "destino": "Salvador, BA",
             "peso": 3000.0,
-            "preco": 4500.00,
+            "preco": 5500.00,
             "data": datetime.now() + timedelta(days=7),
             "status": "disponivel",
+            "regras": "Documentação completa, transporte especializado",
             "created_at": datetime.utcnow()
         },
         {
             "empresaId": ObjectId(empresa2_id),
-            "titulo": "Alimentos Perecíveis",
-            "descricao": "Transporte de alimentos perecíveis. Requer refrigeração.",
+            "titulo": "Alimentos Perecíveis para Supermercado",
+            "descricao": "Transporte de frutas, verduras e laticínios. Requer refrigeração e controle de temperatura.",
             "tipoCarga": "Alimentos",
             "origem": "Rio de Janeiro, RJ",
             "destino": "Brasília, DF",
-            "peso": 1200.0,
-            "preco": 2800.00,
+            "peso": 1500.0,
+            "preco": 3200.00,
             "data": datetime.now() + timedelta(days=1),
-            "status": "disponivel",
+            "status": "em_transito",
+            "regras": "Refrigeração constante, entrega urgente",
             "created_at": datetime.utcnow()
         },
         {
             "empresaId": ObjectId(empresa2_id),
-            "titulo": "Máquinas Industriais",
-            "descricao": "Transporte de máquinas industriais pesadas. Requer equipamento especializado.",
+            "titulo": "Máquinas Industriais Pesadas",
+            "descricao": "Transporte de máquinas para fábrica. Requer equipamento especializado e rota planejada.",
             "tipoCarga": "Máquinas",
             "origem": "Rio de Janeiro, RJ",
             "destino": "Porto Alegre, RS",
-            "peso": 5000.0,
-            "preco": 8000.00,
+            "peso": 8000.0,
+            "preco": 12000.00,
             "data": datetime.now() + timedelta(days=10),
             "status": "disponivel",
+            "regras": "Equipamento especializado, rota autorizada",
+            "created_at": datetime.utcnow()
+        },
+        {
+            "empresaId": ObjectId(empresa2_id),
+            "titulo": "Material de Construção para Obra",
+            "descricao": "Transporte de cimento, tijolos e ferragens para canteiro de obras.",
+            "tipoCarga": "Construção",
+            "origem": "Rio de Janeiro, RJ",
+            "destino": "Niterói, RJ",
+            "peso": 4000.0,
+            "preco": 2800.00,
+            "data": datetime.now() + timedelta(days=2),
+            "status": "concluida",
+            "regras": "Proteger da umidade, empilhamento adequado",
+            "created_at": datetime.utcnow() - timedelta(days=3)
+        },
+        {
+            "empresaId": ObjectId(empresa2_id),
+            "titulo": "Equipamentos Médicos para Hospital",
+            "descricao": "Transporte de equipamentos médicos delicados. Requer cuidado extremo e certificados.",
+            "tipoCarga": "Médico",
+            "origem": "Rio de Janeiro, RJ",
+            "destino": "Vitória, ES",
+            "peso": 800.0,
+            "preco": 4500.00,
+            "data": datetime.now() + timedelta(days=4),
+            "status": "disponivel",
+            "regras": "Manuseio delicado, certificados obrigatórios",
             "created_at": datetime.utcnow()
         }
     ]
+    
+    # Limpar cargas existentes para evitar duplicação
+    print("🧹 Limpando cargas existentes...")
+    db.cargas_empresa.delete_many({})
     
     # Inserir cargas
     todas_cargas = cargas_empresa1 + cargas_empresa2
@@ -149,15 +203,29 @@ def criar_cargas_exemplo(db):
         resultado = db.cargas_empresa.insert_many(todas_cargas)
         print(f"✅ {len(resultado.inserted_ids)} cargas criadas com sucesso!")
         
-        # Mostrar algumas estatísticas
+        # Mostrar estatísticas detalhadas
         total_disponiveis = db.cargas_empresa.count_documents({"status": "disponivel"})
+        total_em_transito = db.cargas_empresa.count_documents({"status": "em_transito"})
+        total_concluidas = db.cargas_empresa.count_documents({"status": "concluida"})
         total_empresa1 = db.cargas_empresa.count_documents({"empresaId": ObjectId(empresa1_id)})
         total_empresa2 = db.cargas_empresa.count_documents({"empresaId": ObjectId(empresa2_id)})
         
-        print(f"📊 Estatísticas:")
-        print(f"   - Total de cargas disponíveis: {total_disponiveis}")
-        print(f"   - Cargas da empresa 1: {total_empresa1}")
-        print(f"   - Cargas da empresa 2: {total_empresa2}")
+        print(f"\n📊 Estatísticas das Cargas:")
+        print(f"   - Total de cargas: {len(todas_cargas)}")
+        print(f"   - Status 'disponivel': {total_disponiveis}")
+        print(f"   - Status 'em_transito': {total_em_transito}")
+        print(f"   - Status 'concluida': {total_concluidas}")
+        print(f"   - Cargas da empresa 1 (piceli@gmail.com): {total_empresa1}")
+        print(f"   - Cargas da empresa 2 (Piceli.Piceli@gmail.com): {total_empresa2}")
+        
+        print(f"\n🏢 Cargas por Empresa:")
+        print(f"   Empresa 1 - piceli@gmail.com:")
+        for i, carga in enumerate(cargas_empresa1, 1):
+            print(f"     {i}. {carga['titulo']} - Status: {carga['status']} - R$ {carga['preco']:.2f}")
+        
+        print(f"\n   Empresa 2 - Piceli.Piceli@gmail.com:")
+        for i, carga in enumerate(cargas_empresa2, 1):
+            print(f"     {i}. {carga['titulo']} - Status: {carga['status']} - R$ {carga['preco']:.2f}")
         
     except Exception as e:
         print(f"❌ Erro ao criar cargas: {e}")
@@ -174,7 +242,8 @@ def main():
     criar_cargas_exemplo(db)
     
     print("\n✅ Script executado com sucesso!")
-    print("💡 Agora você pode testar a API com dados reais!")
+    print("💡 Agora você pode testar o app com dados reais de cargas!")
+    print("📱 Teste as telas de 'Cargas Realizadas' e 'Cargas Pendentes' no app!")
 
 if __name__ == "__main__":
     main()

@@ -336,7 +336,15 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
 
               const SizedBox(height: 12),
-              const FlutterLogo(size: 60),
+              // Logo do TruckLoad
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.blueAccent, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Image.asset('assets/logo.png', height: 60),
+              ),
             ],
           ),
         ),

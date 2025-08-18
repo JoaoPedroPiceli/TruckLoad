@@ -1,9 +1,20 @@
+# =============================================================================
+# TruckLoad API v1.5.0
+# =============================================================================
+# Changelog:
+# - v1.5.0: Cargas de exemplo automáticas para empresas, sistema completo de gestão
+# - v1.4.0: Sistema de autenticação melhorado, senhas padrão para usuários existentes
+# - v1.3.0: Cargas empresariais, busca de cargas disponíveis, perfil agregado
+# - v1.2.0: CRUD completo para caminhoneiros e empresas
+# - v1.1.0: Endpoints básicos e conexão MongoDB
+# - v1.0.0: Estrutura inicial
+# =============================================================================
 # API/main.py
 from fastapi import FastAPI, HTTPException, Path, Body, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Literal, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
@@ -88,8 +99,32 @@ def to_public(doc: dict) -> dict:
 def criar_dados_exemplo():
     """Cria dados de exemplo se as coleções estiverem vazias"""
     
-    # Verificar se já existem dados
-    if db.caminhoneiros.count_documents({}) > 0:
+    print("Verificando e atualizando dados de exemplo...")
+    
+    # Atualizar caminhoneiros existentes com senhas padrão
+    caminhoneiros_sem_senha = db.caminhoneiros.find({"senha": {"$exists": False}})
+    for caminhoneiro in caminhoneiros_sem_senha:
+        db.caminhoneiros.update_one(
+            {"_id": caminhoneiro["_id"]},
+            {"$set": {"senha": "123456"}}
+        )
+        print(f"Senha adicionada para caminhoneiro: {caminhoneiro.get('email', 'N/A')}")
+    
+    # Atualizar empresas existentes com senhas padrão
+    empresas_sem_senha = db.empresas.find({"senha": {"$exists": False}})
+    for empresa in empresas_sem_senha:
+        db.empresas.update_one(
+            {"_id": empresa["_id"]},
+            {"$set": {"senha": "123456"}}
+        )
+        print(f"Senha adicionada para empresa: {empresa.get('email', 'N/A')}")
+    
+    # Verificar se já existem dados de exemplo
+    if db.caminhoneiros.count_documents({}) > 0 and db.empresas.count_documents({}) > 0:
+        print("Dados existem, apenas senhas foram atualizadas.")
+        
+        # Criar cargas de exemplo para empresas existentes
+        criar_cargas_exemplo_empresas()
         return
     
     print("Criando dados de exemplo...")
@@ -161,6 +196,202 @@ def criar_dados_exemplo():
             pass
     
     print("Dados de exemplo criados com sucesso!")
+    
+    # Criar cargas de exemplo para as empresas
+    criar_cargas_exemplo_empresas()
+
+def criar_cargas_exemplo_empresas():
+    """Cria cargas de exemplo para as empresas existentes"""
+    
+    print("Criando cargas de exemplo para empresas...")
+    
+    # Limpar cargas existentes para evitar duplicação
+    db.cargas_empresa.delete_many({})
+    
+    # Obter empresas existentes
+    empresas = list(db.empresas.find({}))
+    if not empresas:
+        print("Nenhuma empresa encontrada para criar cargas.")
+        return
+    
+    # Criar cargas para cada empresa
+    for empresa in empresas:
+        empresa_id = empresa["_id"]
+        empresa_email = empresa.get("email", "N/A")
+        
+        print(f"Criando cargas para empresa: {empresa_email}")
+        
+        # Cargas baseadas no email da empresa
+        if "piceli@gmail.com" in empresa_email.lower():
+            cargas = [
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Transporte de Eletrônicos para Loja",
+                    "descricao": "Carga de smartphones, notebooks e tablets para loja de varejo. Requer cuidado especial no manuseio e embalagem adequada.",
+                    "tipoCarga": "Eletrônicos",
+                    "origem": "São Paulo, SP",
+                    "destino": "Rio de Janeiro, RJ",
+                    "peso": 1200.0,
+                    "preco": 2800.00,
+                    "data": datetime.now() + timedelta(days=3),
+                    "status": "disponivel",
+                    "regras": "Manuseio cuidadoso, embalagem original preservada",
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Carga de Roupas para Shopping",
+                    "descricao": "Transporte de roupas de verão para loja de departamentos. Carga seca e leve, mas volumosa.",
+                    "tipoCarga": "Têxtil",
+                    "origem": "São Paulo, SP",
+                    "destino": "Curitiba, PR",
+                    "peso": 800.0,
+                    "preco": 1800.00,
+                    "data": datetime.now() + timedelta(days=5),
+                    "status": "em_transito",
+                    "regras": "Proteger da umidade, empilhamento máximo 2m",
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Móveis para Escritório Corporativo",
+                    "descricao": "Transporte de mesas, cadeiras e armários para escritório. Requer embalagem adequada e montagem no destino.",
+                    "tipoCarga": "Móveis",
+                    "origem": "São Paulo, SP",
+                    "destino": "Belo Horizonte, MG",
+                    "peso": 2500.0,
+                    "preco": 4200.00,
+                    "data": datetime.now() + timedelta(days=2),
+                    "status": "concluida",
+                    "regras": "Embalagem individual, proteção contra arranhões",
+                    "created_at": datetime.utcnow() - timedelta(days=5)
+                },
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Produtos de Higiene para Farmácia",
+                    "descricao": "Transporte de produtos de higiene pessoal e limpeza para rede de farmácias.",
+                    "tipoCarga": "Higiene",
+                    "origem": "São Paulo, SP",
+                    "destino": "Campinas, SP",
+                    "peso": 600.0,
+                    "preco": 1200.00,
+                    "data": datetime.now() + timedelta(days=1),
+                    "status": "disponivel",
+                    "regras": "Proteger da umidade, temperatura ambiente",
+                    "created_at": datetime.utcnow()
+                }
+            ]
+        elif "piceli.piceli@gmail.com" in empresa_email.lower():
+            cargas = [
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Produtos Químicos Industriais",
+                    "descricao": "Transporte de produtos químicos para indústria. Requer documentação especial e certificados de segurança.",
+                    "tipoCarga": "Químicos",
+                    "origem": "Rio de Janeiro, RJ",
+                    "destino": "Salvador, BA",
+                    "peso": 3000.0,
+                    "preco": 5500.00,
+                    "data": datetime.now() + timedelta(days=7),
+                    "status": "disponivel",
+                    "regras": "Documentação completa, transporte especializado",
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Alimentos Perecíveis para Supermercado",
+                    "descricao": "Transporte de frutas, verduras e laticínios. Requer refrigeração e controle de temperatura.",
+                    "tipoCarga": "Alimentos",
+                    "origem": "Rio de Janeiro, RJ",
+                    "destino": "Brasília, DF",
+                    "peso": 1500.0,
+                    "preco": 3200.00,
+                    "data": datetime.now() + timedelta(days=1),
+                    "status": "em_transito",
+                    "regras": "Refrigeração constante, entrega urgente",
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Máquinas Industriais Pesadas",
+                    "descricao": "Transporte de máquinas para fábrica. Requer equipamento especializado e rota planejada.",
+                    "tipoCarga": "Máquinas",
+                    "origem": "Rio de Janeiro, RJ",
+                    "destino": "Porto Alegre, RS",
+                    "peso": 8000.0,
+                    "preco": 12000.00,
+                    "data": datetime.now() + timedelta(days=10),
+                    "status": "disponivel",
+                    "regras": "Equipamento especializado, rota autorizada",
+                    "created_at": datetime.utcnow()
+                },
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Material de Construção para Obra",
+                    "descricao": "Transporte de cimento, tijolos e ferragens para canteiro de obras.",
+                    "tipoCarga": "Construção",
+                    "origem": "Rio de Janeiro, RJ",
+                    "destino": "Niterói, RJ",
+                    "peso": 4000.0,
+                    "preco": 2800.00,
+                    "data": datetime.now() + timedelta(days=2),
+                    "status": "concluida",
+                    "regras": "Proteger da umidade, empilhamento adequado",
+                    "created_at": datetime.utcnow() - timedelta(days=3)
+                },
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Equipamentos Médicos para Hospital",
+                    "descricao": "Transporte de equipamentos médicos delicados. Requer cuidado extremo e certificados.",
+                    "tipoCarga": "Médico",
+                    "origem": "Rio de Janeiro, RJ",
+                    "destino": "Vitória, ES",
+                    "peso": 800.0,
+                    "preco": 4500.00,
+                    "data": datetime.now() + timedelta(days=4),
+                    "status": "disponivel",
+                    "regras": "Manuseio delicado, certificados obrigatórios",
+                    "created_at": datetime.utcnow()
+                }
+            ]
+        else:
+            # Cargas genéricas para outras empresas
+            cargas = [
+                {
+                    "empresaId": empresa_id,
+                    "titulo": "Carga Geral",
+                    "descricao": "Transporte de carga geral para empresa.",
+                    "tipoCarga": "Geral",
+                    "origem": "São Paulo, SP",
+                    "destino": "Rio de Janeiro, RJ",
+                    "peso": 1000.0,
+                    "preco": 2000.00,
+                    "data": datetime.now() + timedelta(days=3),
+                    "status": "disponivel",
+                    "regras": "Transporte padrão",
+                    "created_at": datetime.utcnow()
+                }
+            ]
+        
+        # Inserir cargas da empresa
+        try:
+            resultado = db.cargas_empresa.insert_many(cargas)
+            print(f"  ✅ {len(resultado.inserted_ids)} cargas criadas para {empresa_email}")
+        except Exception as e:
+            print(f"  ❌ Erro ao criar cargas para {empresa_email}: {e}")
+    
+    # Mostrar estatísticas finais
+    total_cargas = db.cargas_empresa.count_documents({})
+    total_disponiveis = db.cargas_empresa.count_documents({"status": "disponivel"})
+    total_em_transito = db.cargas_empresa.count_documents({"status": "em_transito"})
+    total_concluidas = db.cargas_empresa.count_documents({"status": "concluida"})
+    
+    print(f"\n📊 Estatísticas das Cargas Criadas:")
+    print(f"   - Total de cargas: {total_cargas}")
+    print(f"   - Status 'disponivel': {total_disponiveis}")
+    print(f"   - Status 'em_transito': {total_em_transito}")
+    print(f"   - Status 'concluida': {total_concluidas}")
+    print("✅ Cargas de exemplo criadas com sucesso!")
 
 # =============================================================================
 # Schemas
@@ -283,6 +514,27 @@ def login(payload: LoginPayload = Body(...)):
     if not user or user.get("senha") != payload.senha:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
     return {"msg": "ok", "tipo": payload.tipo, "user": to_public(user)}
+
+@app.post("/auth/reset-password")
+def reset_password(payload: dict = Body(...)):
+    """Endpoint para redefinir senha de usuários existentes (apenas para testes)"""
+    email = payload.get("email")
+    tipo = payload.get("tipo")
+    nova_senha = payload.get("nova_senha", "123456")
+    
+    if not email or not tipo:
+        raise HTTPException(status_code=400, detail="Email e tipo são obrigatórios")
+    
+    coll = db.caminhoneiros if tipo == "caminhoneiro" else db.empresas
+    result = coll.update_one(
+        {"email": email},
+        {"$set": {"senha": nova_senha}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    return {"msg": "Senha redefinida com sucesso", "email": email, "tipo": tipo}
 
 # =============================================================================
 # Caminhoneiros

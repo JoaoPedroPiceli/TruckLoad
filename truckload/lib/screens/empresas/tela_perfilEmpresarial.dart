@@ -25,13 +25,18 @@ class _TelaPerfilEmpresaState extends State<TelaPerfilEmpresa> {
   }
 
   Future<void> _carregarPerfil() async {
+    print(
+      'DEBUG: Carregando perfil para empresa ID: ${widget.empresaId}',
+    ); // Debug log
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
+      print('DEBUG: Chamando API getPerfilEmpresa...'); // Debug log
       final perfilData = await _apiService.getPerfilEmpresa(widget.empresaId);
+      print('DEBUG: Dados recebidos da API: $perfilData'); // Debug log
       final perfil = PerfilEmpresa.fromJson(perfilData);
 
       setState(() {
@@ -39,6 +44,7 @@ class _TelaPerfilEmpresaState extends State<TelaPerfilEmpresa> {
         _loading = false;
       });
     } catch (e) {
+      print('DEBUG: Erro ao carregar perfil: $e'); // Debug log
       setState(() {
         _error = 'Falha ao carregar: $e';
         _loading = false;

@@ -65,7 +65,8 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
   void validarCampos() {
     setState(() {
       erroTipo = tipoSelecionado.isEmpty;
-      erroDescricao = descricaoController.text.isEmpty;
+      erroDescricao =
+          descricaoController.text.length < 10; // Mínimo 10 caracteres
       erroOrigem = origemController.text.isEmpty;
       erroDestino = destinoController.text.isEmpty;
       erroPeso = pesoController.text.isEmpty;
@@ -113,7 +114,9 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
         'empresaId': widget.empresaId,
         'titulo':
             '${tipoSelecionado} - ${origemController.text} para ${destinoController.text}',
-        'descricao': descricaoController.text,
+        'descricao': descricaoController.text.length >= 10
+            ? descricaoController.text
+            : '${descricaoController.text} - Carga transportada com segurança e pontualidade.',
         'tipoCarga': tipoSelecionado,
         'origem': origemController.text,
         'destino': destinoController.text,
@@ -250,7 +253,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
                 const SizedBox(height: 30),
 
                 campoPadrao(
-                  "Descrição",
+                  "Descrição da carga (mínimo 10 caracteres)",
                   descricaoController,
                   erroDescricao,
                   Icons.assignment_outlined,

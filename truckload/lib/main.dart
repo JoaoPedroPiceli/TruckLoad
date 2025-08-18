@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:truckload/screens/tela_inicial.dart';
-import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
 import 'package:truckload/screens/tela_login.dart';
 import 'package:truckload/screens/cadastro_screen.dart';
 
@@ -24,7 +23,6 @@ class TruckLoadApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
-        '/menuEmpresa': (context) => const TelaMenuEmpresa(empresaId: 'temp'),
       },
     );
   }

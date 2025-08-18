@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
+import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
 
 /// Base URL da API (pode vir por --dart-define)
 const String kApiBaseUrl = String.fromEnvironment(
@@ -25,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _tipoConta = 'caminhoneiro'; // 'caminhoneiro' | 'empresa'
   bool _loading = false;
   final _formKey = GlobalKey<FormState>();
+  String? _empresaId; // Added state variable for empresaId
 
   @override
   void dispose() {
@@ -85,6 +87,15 @@ class _LoginScreenState extends State<LoginScreen> {
           );
           await _abrirMenuCaminhoneiro(userId);
         } else {
+          // Para empresas, capturar o ID
+          if (userId == null || userId.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Falha ao obter ID da empresa.')),
+            );
+            return;
+          }
+          _empresaId = userId;
+          print('DEBUG: Empresa ID capturado: $_empresaId'); // Debug log
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Login realizado com sucesso!')),
           );
@@ -150,6 +161,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (_tipoConta == 'caminhoneiro') {
           await _abrirMenuCaminhoneiro(userId);
         } else {
+          // Para empresas, capturar o ID
+          _empresaId = userId;
           await _abrirMenuEmpresa();
         }
       } else {
@@ -192,7 +205,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _abrirMenuEmpresa() async {
-    Navigator.pushReplacementNamed(context, '/menuEmpresa');
+    print('DEBUG: Abrindo menu empresa com ID: $_empresaId'); // Debug log
+    // Cria a tela passando o empresaId (não use rota nomeada aqui).
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TelaMenuEmpresa(empresaId: _empresaId!),
+      ),
+    );
   }
 
   @override

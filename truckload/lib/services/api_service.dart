@@ -231,7 +231,14 @@ class ApiService {
   Future<Map<String, dynamic>> getPerfilEmpresa(String empresaId) async {
     try {
       final url = Uri.parse('$kApiBaseUrl/perfil/empresa/$empresaId');
+      print('DEBUG: API Service - URL chamada: $url'); // Debug log
       final response = await http.get(url);
+      print(
+        'DEBUG: API Service - Status code: ${response.statusCode}',
+      ); // Debug log
+      print(
+        'DEBUG: API Service - Response body: ${response.body}',
+      ); // Debug log
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -239,6 +246,7 @@ class ApiService {
         throw Exception('Erro ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
+      print('DEBUG: API Service - Erro: $e'); // Debug log
       throw Exception('Falha ao carregar perfil da empresa: $e');
     }
   }
