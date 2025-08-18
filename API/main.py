@@ -784,12 +784,28 @@ def buscar_cargas_disponiveis(
     """Busca cargas disponíveis com filtros opcionais"""
     q = {"status": "disponivel"}
     
+    # Se não há filtros, retorna todas as cargas disponíveis
+    if not any([origem, destino, tipoCarga, pesoMin, pesoMax, precoMin, precoMax]):
+        cur = db.cargas_empresa.find(q).sort("created_at", -1).skip(skip).limit(limit)
+        out: List[dict] = []
+        for c in cur:
+            c["id"] = str(c.pop("_id"))
+            c["empresaId"] = str(c["empresaId"])
+            out.append(c)
+        return out
+    
+    # Se há filtros, usa lógica mais flexível
+    # Construir filtros individuais
+    filtros = []
+    
     if origem:
-        q["origem"] = {"$regex": origem, "$options": "i"}
+        filtros.append({"origem": {"$regex": origem, "$options": "i"}})
     if destino:
-        q["destino"] = {"$regex": destino, "$options": "i"}
+        filtros.append({"destino": {"$regex": destino, "$options": "i"}})
     if tipoCarga:
-        q["tipoCarga"] = {"$regex": tipoCarga, "$options": "i"}
+        filtros.append({"tipoCarga": {"$regex": tipoCarga, "$options": "i"}})
+    
+    # Filtros de peso e preço são aplicados como AND (restrições)
     if pesoMin is not None or pesoMax is not None:
         peso_filter = {}
         if pesoMin is not None:
@@ -797,6 +813,7 @@ def buscar_cargas_disponiveis(
         if pesoMax is not None:
             peso_filter["$lte"] = pesoMax
         q["peso"] = peso_filter
+    
     if precoMin is not None or precoMax is not None:
         preco_filter = {}
         if precoMin is not None:
@@ -804,6 +821,10 @@ def buscar_cargas_disponiveis(
         if precoMax is not None:
             preco_filter["$lte"] = precoMax
         q["preco"] = preco_filter
+    
+    # Se há filtros de texto, usa OR para ser mais flexível
+    if filtros:
+        q["$or"] = filtros
     
     cur = db.cargas_empresa.find(q).sort("created_at", -1).skip(skip).limit(limit)
     out: List[dict] = []

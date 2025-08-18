@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:truckload/services/api_service.dart';
 import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
+import 'package:truckload/screens/caminhoneiros/tela_listaCargas.dart';
 
 class TelaFiltroCarga extends StatefulWidget {
   final String userId;
@@ -99,7 +100,7 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
           SnackBar(
             content: Text(
               filtros.isEmpty
-                  ? 'Nenhum filtro aplicado'
+                  ? 'Nenhum filtro aplicado - mostrando todas as cargas disponíveis'
                   : 'Filtros aplicados:\n$filtrosText',
             ),
             duration: const Duration(seconds: 3),
@@ -112,6 +113,19 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
 
       if (!mounted) return;
 
+      // Sempre navegar para a tela de lista de cargas
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TelaListaCargas(
+            userId: widget.userId,
+            cargas: cargas,
+            filtrosAplicados: filtros,
+          ),
+        ),
+      );
+
+      // Mostrar feedback sobre a busca
       if (cargas.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -120,14 +134,6 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
             duration: const Duration(seconds: 2),
           ),
         );
-
-        // TODO: Navegar para tela de lista de cargas
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) => TelaListaCargas(cargas: cargas),
-        //   ),
-        // );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -231,44 +237,37 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
             const SizedBox(height: 10),
 
             // Botões tipo carga
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
               children: [
                 botaoTipo('Seca'),
                 botaoTipo('Frigorífica'),
                 botaoTipo('Granel'),
+                botaoTipo('Outros'),
               ],
             ),
 
             const Spacer(),
 
             ElevatedButton(
+              onPressed: _buscando ? null : _buscarCargasDisponiveis,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                  vertical: 12,
-                ),
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: _buscando ? null : _buscarCargasDisponiveis,
               child: _buscando
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                      ),
-                    )
+                  ? const CircularProgressIndicator(color: Colors.white)
                   : const Text(
-                      'APLICAR FILTROS',
+                      'Buscar Cargas e Ver Resultados',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
                       ),
                     ),
             ),
@@ -385,7 +384,7 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: selecionado ? Colors.blue[300] : const Color(0xFFB0CCE5),
           borderRadius: BorderRadius.circular(20),
@@ -395,6 +394,7 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: selecionado ? Colors.white : Colors.black,
+            fontSize: 14,
           ),
         ),
       ),
