@@ -5,21 +5,20 @@ import 'package:truckload/screens/empresas/tela_cargasPendentes.dart';
 import 'package:truckload/screens/empresas/tela_perfilEmpresarial.dart';
 
 class TelaMenuEmpresa extends StatelessWidget {
-  const TelaMenuEmpresa({super.key});
+  final String empresaId;
+
+  const TelaMenuEmpresa({super.key, required this.empresaId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE6F0FA), 
+      backgroundColor: const Color(0xFFE6F0FA),
       body: Column(
         children: [
           const SizedBox(height: 60),
           const Text(
             'MENU',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -40,7 +39,8 @@ class TelaMenuEmpresa extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => TelaPerfilEmpresa(),
+                          builder: (context) =>
+                              TelaPerfilEmpresa(empresaId: empresaId),
                         ),
                       );
                     },
@@ -54,7 +54,8 @@ class TelaMenuEmpresa extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AdicionarCarga(),
+                          builder: (context) =>
+                              AdicionarCarga(empresaId: empresaId),
                         ),
                       );
                     },
@@ -68,7 +69,8 @@ class TelaMenuEmpresa extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const CargasRealizadas(),
+                          builder: (context) =>
+                              CargasRealizadas(empresaId: empresaId),
                         ),
                       );
                     },
@@ -82,7 +84,8 @@ class TelaMenuEmpresa extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CargasPendentes(),
+                          builder: (context) =>
+                              CargasPendentes(empresaId: empresaId),
                         ),
                       );
                     },
@@ -100,7 +103,11 @@ class TelaMenuEmpresa extends StatelessWidget {
   }
 
   Widget menuItem(
-      BuildContext context, IconData icon, String label, VoidCallback onTap) {
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
     return InkWell(
       onTap: onTap,
       child: Padding(

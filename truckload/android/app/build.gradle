@@ -24,7 +24,11 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.example.truckload"
+<<<<<<< HEAD
     compileSdkVersion flutter.compileSdkVersion
+=======
+    compileSdk 34
+>>>>>>> c4935c16eac91cf038f95ae30ce50af384f6b4dc
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -46,7 +50,11 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion flutter.minSdkVersion
+<<<<<<< HEAD
         targetSdkVersion flutter.targetSdkVersion
+=======
+        targetSdkVersion 34
+>>>>>>> c4935c16eac91cf038f95ae30ce50af384f6b4dc
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }

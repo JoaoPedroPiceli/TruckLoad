@@ -3,8 +3,13 @@ import 'tela_menuEmpresarial.dart';
 
 class TelaDeletarCarga extends StatefulWidget {
   final VoidCallback onDelete; // callback para remover a carga
+  final String empresaId;
 
-  const TelaDeletarCarga({super.key, required this.onDelete});
+  const TelaDeletarCarga({
+    super.key,
+    required this.onDelete,
+    required this.empresaId,
+  });
 
   @override
   State<TelaDeletarCarga> createState() => _TelaDeletarCargaState();
@@ -22,7 +27,7 @@ class _TelaDeletarCargaState extends State<TelaDeletarCarga> {
     "Preço/tarifa não atrativo (frete ficou inviável).",
     "Tempo de espera muito alto (atraso no carregamento ou descarregamento).",
     "Condições inadequadas de carga (peso, tipo de mercadoria, exigências não compatíveis).",
-    "Outro (especificar)"
+    "Outro (especificar)",
   ];
 
   void confirmarExclusao() {
@@ -36,7 +41,9 @@ class _TelaDeletarCargaState extends State<TelaDeletarCarga> {
     if (motivoSelecionado == "Outro (especificar)" &&
         outroController.text.trim().length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Escreva pelo menos 10 caracteres no motivo.")),
+        const SnackBar(
+          content: Text("Escreva pelo menos 10 caracteres no motivo."),
+        ),
       );
       return;
     }
@@ -59,9 +66,11 @@ class _TelaDeletarCargaState extends State<TelaDeletarCarga> {
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: () {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const TelaMenuEmpresa()),
+              MaterialPageRoute(
+                builder: (_) => TelaMenuEmpresa(empresaId: widget.empresaId),
+              ),
             );
           },
         ),
@@ -117,9 +126,12 @@ class _TelaDeletarCargaState extends State<TelaDeletarCarga> {
                 icon: const Icon(Icons.delete),
                 label: const Text("Apagar Carga"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:  const Color(0xFFB0CCE5),
+                  backgroundColor: const Color(0xFFB0CCE5),
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),

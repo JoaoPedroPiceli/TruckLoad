@@ -1,59 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:truckload/services/api_service.dart';
+import 'package:truckload/models/carga.dart';
 
-class Carga {
-  final String empresa;
-  final String origem;
-  final String destino;
-  final double peso;
-  final DateTime data;
-  bool avaliada;
+class TelaHistorico extends StatefulWidget {
+  final String userId;
 
-  Carga({
-    required this.empresa,
-    required this.origem,
-    required this.destino,
-    required this.peso,
-    required this.data,
-    this.avaliada = false,
-  });
+  const TelaHistorico({super.key, required this.userId});
+
+  @override
+  State<TelaHistorico> createState() => _TelaHistoricoState();
 }
 
-class TelaHistorico extends StatelessWidget {
-  TelaHistorico({super.key});
+class _TelaHistoricoState extends State<TelaHistorico> {
+  bool _loading = true;
+  String? _error;
+  List<Carga> _cargas = [];
+  final ApiService _apiService = ApiService();
 
-  final List<Carga> cargas = [
-    Carga(
-      empresa: 'Empresa A',
-      origem: 'São Paulo',
-      destino: 'Rio de Janeiro',
-      peso: 1200,
-      data: DateTime.now().subtract(const Duration(days: 10)),
-      avaliada: false,
-    ),
-    Carga(
-      empresa: 'Empresa B',
-      origem: 'Curitiba',
-      destino: 'Porto Alegre',
-      peso: 900,
-      data: DateTime.now().add(const Duration(days: 5)),
-    ),
-    Carga(
-      empresa: 'Empresa C',
-      origem: 'Belo Horizonte',
-      destino: 'Vitória',
-      peso: 700,
-      data: DateTime.now().subtract(const Duration(days: 3)),
-      avaliada: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _carregarCargas();
+  }
+
+  Future<void> _carregarCargas() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final cargasData = await _apiService.getCargasCaminhoneiro(widget.userId);
+      final cargas = cargasData.map((json) => Carga.fromJson(json)).toList();
+
+      setState(() {
+        _cargas = cargas;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFD4E1FF),
+        appBar: AppBar(
+          title: const Text('Minhas Cargas'),
+          backgroundColor: const Color(0xFFB0CCE5),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFD4E1FF),
+        appBar: AppBar(
+          title: const Text('Minhas Cargas'),
+          backgroundColor: const Color(0xFFB0CCE5),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro: $_error'),
+              ElevatedButton(
+                onPressed: _carregarCargas,
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     DateTime hoje = DateTime.now();
 
-    List<Carga> futuras = cargas.where((c) => c.data.isAfter(hoje)).toList();
-    List<Carga> realizadas = cargas.where((c) => !c.data.isAfter(hoje)).toList();
+    List<Carga> futuras = _cargas.where((c) => c.data.isAfter(hoje)).toList();
+    List<Carga> realizadas = _cargas
+        .where((c) => !c.data.isAfter(hoje))
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFD4E1FF),
@@ -79,7 +112,9 @@ class TelaHistorico extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Column(
-                  children: futuras.map((carga) => cargaCard(context, carga, futuro: true)).toList(),
+                  children: futuras
+                      .map((carga) => cargaCard(context, carga, futuro: true))
+                      .toList(),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -95,7 +130,9 @@ class TelaHistorico extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Column(
-                children: realizadas.map((carga) => cargaCard(context, carga, futuro: false)).toList(),
+                children: realizadas
+                    .map((carga) => cargaCard(context, carga, futuro: false))
+                    .toList(),
               ),
             ],
           ),
@@ -139,7 +176,7 @@ class TelaHistorico extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text('Empresa: ${carga.empresa}'),
+                Text('Empresa: ${carga.empresaNome ?? 'Não informada'}'),
                 Text('Origem: ${carga.origem}'),
                 Text('Destino: ${carga.destino}'),
                 Text('Peso: ${carga.peso} kg'),
@@ -166,35 +203,41 @@ class TelaHistorico extends StatelessWidget {
                   child: const Text('CANCELAR'),
                 )
               : carga.avaliada
-                  ? Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.white,
-                      ),
-                      child: const Text(
-                        'CARGA AVALIADA',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: Colors.black54,
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                  ),
+                  child: const Text(
+                    'CARGA AVALIADA',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Colors.black54,
+                    ),
+                  ),
+                )
+              : ElevatedButton(
+                  onPressed: () {
+                    // Avaliar carga
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Avaliar carga de ${carga.empresaNome ?? 'empresa'}',
                         ),
                       ),
-                    )
-                  : ElevatedButton(
-                      onPressed: () {
-                        // Avaliar carga
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Avaliar carga de ${carga.empresa}')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                      ),
-                      child: const Text('AVALIAR CARGA'),
-                    ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text('AVALIAR CARGA'),
+                ),
         ],
       ),
     );

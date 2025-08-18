@@ -1,9 +1,10 @@
 // lib/screens/tela_login.dart
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
+import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
 
 /// Base URL da API (pode vir por --dart-define)
 const String kApiBaseUrl = String.fromEnvironment(
@@ -25,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _tipoConta = 'caminhoneiro'; // 'caminhoneiro' | 'empresa'
   bool _loading = false;
   final _formKey = GlobalKey<FormState>();
+  String? _empresaId; // Added state variable for empresaId
 
   @override
   void dispose() {
@@ -41,45 +43,73 @@ class _LoginScreenState extends State<LoginScreen> {
     final senha = _senhaCtrl.text;
 
     try {
-      // 1) Tenta endpoint oficial (se existir no backend)
+      // 1) Tenta endpoint oficial
       final loginUrl = Uri.parse('$kApiBaseUrl/auth/login');
-      final loginBody = json.encode({
+      final body = json.encode({
         'email': email,
         'senha': senha,
-        'tipo': _tipoConta, // 'caminhoneiro' | 'empresa'
+        'tipo': _tipoConta,
       });
-
       http.Response? resp;
+
       try {
         resp = await http
             .post(
               loginUrl,
               headers: {'Content-Type': 'application/json'},
-              body: loginBody,
+              body: body,
             )
             .timeout(const Duration(seconds: 20));
       } on TimeoutException {
-        resp = null; // segue pro fallback
+        resp = null;
       } on http.ClientException {
-        resp = null; // segue pro fallback
+        resp = null;
       }
 
       if (resp != null && resp.statusCode == 200) {
+        final decoded = json.decode(resp.body);
+        // Esperado: {"msg":"ok","tipo":"caminhoneiro|empresa","user":{...,"id":"..."}}
+        final user = (decoded is Map)
+            ? decoded['user'] as Map<String, dynamic>?
+            : null;
+        final userId = user?['id']?.toString();
+
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login realizado com sucesso!')),
-        );
-        await _abrirMenu();
+        if (_tipoConta == 'caminhoneiro') {
+          if (userId == null || userId.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Falha ao obter ID do usuário.')),
+            );
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login realizado com sucesso!')),
+          );
+          await _abrirMenuCaminhoneiro(userId);
+        } else {
+          // Para empresas, capturar o ID
+          if (userId == null || userId.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Falha ao obter ID da empresa.')),
+            );
+            return;
+          }
+          _empresaId = userId;
+          print('DEBUG: Empresa ID capturado: $_empresaId'); // Debug log
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login realizado com sucesso!')),
+          );
+          await _abrirMenuEmpresa();
+        }
         return;
       }
 
-      // 2) Fallback: busca lista e valida email + senha em texto claro
+      // 2) Fallback: busca lista e pega o ID pelo e-mail
       final listUrl = Uri.parse(
         _tipoConta == 'caminhoneiro'
             ? '$kApiBaseUrl/caminhoneiros/?limit=200'
             : '$kApiBaseUrl/empresas/?limit=200',
       );
-
       final listResp = await http
           .get(listUrl)
           .timeout(const Duration(seconds: 20));
@@ -87,12 +117,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (listResp.statusCode == 200) {
         final decoded = json.decode(listResp.body);
 
-        // esperado preferencialmente: {"results":[...]}
+        // Pode vir como lista direta ou {"results":[...]}
         List results = [];
         if (decoded is Map && decoded['results'] is List) {
           results = decoded['results'] as List;
         } else if (decoded is List) {
-          // caso API retorne array diretamente
           results = decoded;
         }
 
@@ -113,19 +142,28 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-        // Verifica senha armazenada no documento (campo "senha")
-        final senhaBanco = (found['senha'] ?? '').toString();
-        if (senhaBanco == senha) {
+        // ⚠️ Em muitas APIs o /caminhoneiros/ não retorna "senha".
+        // Como fallback, só vamos navegar usando o ID encontrado pelo e-mail.
+        final userId = (found['id'] ?? found['_id'])?.toString();
+        if (userId == null || userId.isEmpty) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login realizado com sucesso!')),
+            const SnackBar(content: Text('Falha ao obter ID do usuário.')),
           );
-          await _abrirMenu();
+          return;
+        }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login realizado (fallback).')),
+        );
+
+        if (_tipoConta == 'caminhoneiro') {
+          await _abrirMenuCaminhoneiro(userId);
         } else {
-          if (!mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Senha incorreta.')));
+          // Para empresas, capturar o ID
+          _empresaId = userId;
+          await _abrirMenuEmpresa();
         }
       } else {
         String msg = 'Erro ${listResp.statusCode} ao consultar usuários.';
@@ -143,30 +181,38 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Servidor demorou para responder.')),
       );
-    } on http.ClientException catch (e) {
-      debugPrint('ClientException: $e');
+    } on http.ClientException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Falha de rede ao conectar.')),
       );
     } catch (e) {
-      debugPrint('Erro inesperado no login: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao conectar ao servidor.')),
+        SnackBar(content: Text('Erro ao conectar ao servidor: $e')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _abrirMenu() async {
-    // As rotas precisam existir no MaterialApp
-    if (_tipoConta == 'caminhoneiro') {
-      Navigator.pushReplacementNamed(context, '/menuCaminhoneiro');
-    } else {
-      Navigator.pushReplacementNamed(context, '/menuEmpresa');
-    }
+  Future<void> _abrirMenuCaminhoneiro(String userId) async {
+    // Cria a tela passando o userId (não use rota nomeada aqui).
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => TelaMenu(userId: userId)),
+    );
+  }
+
+  Future<void> _abrirMenuEmpresa() async {
+    print('DEBUG: Abrindo menu empresa com ID: $_empresaId'); // Debug log
+    // Cria a tela passando o empresaId (não use rota nomeada aqui).
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TelaMenuEmpresa(empresaId: _empresaId!),
+      ),
+    );
   }
 
   @override
@@ -283,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 12),
 
-                // Link criar conta -> rota /cadastro
+                // Link criar conta
                 TextButton(
                   onPressed: _loading
                       ? null

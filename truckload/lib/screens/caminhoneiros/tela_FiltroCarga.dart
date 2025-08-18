@@ -2,9 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:truckload/services/api_service.dart';
+import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
+import 'package:truckload/screens/caminhoneiros/tela_listaCargas.dart';
 
 class TelaFiltroCarga extends StatefulWidget {
-  const TelaFiltroCarga({super.key});
+  final String userId;
+
+  const TelaFiltroCarga({super.key, required this.userId});
 
   @override
   State<TelaFiltroCarga> createState() => _TelaFiltroCargaState();
@@ -17,18 +22,21 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
 
   String tipoSelecionado = '';
   List<String> todasCidades = [];
-  List<String> cidadesFiltradas = [];
+  final ApiService _apiService = ApiService();
+  bool _buscando = false;
 
   @override
   void initState() {
-    super.initState(); 
+    super.initState();
     carregarCidades();
   }
 
-  Future<void> carregarCidades() async { // carregar lista de cidades
+  Future<void> carregarCidades() async {
+    // carregar lista de cidades
     try {
       final url = Uri.parse(
-          'https://servicodados.ibge.gov.br/api/v1/localidades/municipios');
+        'https://servicodados.ibge.gov.br/api/v1/localidades/municipios',
+      );
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -40,39 +48,146 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
         });
       }
     } catch (e) {
-      print('Erro ao carregar cidades: $e');
+      debugPrint('Erro ao carregar cidades: $e');
     }
   }
 
-  void filtrarCidades(String prefixo) {
+  List<String> filtrarCidades(String prefixo) {
     if (prefixo.isEmpty) {
-      setState(() => cidadesFiltradas = []);
-      return;
+      return [];
     }
-    final lista = todasCidades
-        .where((nome) =>
-            nome.toLowerCase().startsWith(prefixo.toLowerCase()))
+    return todasCidades
+        .where((nome) => nome.toLowerCase().startsWith(prefixo.toLowerCase()))
+        .take(10) // Limitar a 10 sugestões para performance
         .toList();
+  }
+
+  Future<void> _buscarCargasDisponiveis() async {
     setState(() {
-      cidadesFiltradas = lista;
+      _buscando = true;
     });
+
+    try {
+      // Preparar filtros
+      final Map<String, dynamic> filtros = {};
+
+      if (origemController.text.isNotEmpty) {
+        filtros['origem'] = origemController.text.trim();
+      }
+
+      if (destinoController.text.isNotEmpty) {
+        filtros['destino'] = destinoController.text.trim();
+      }
+
+      if (pesoController.text.isNotEmpty) {
+        final peso = double.tryParse(pesoController.text);
+        if (peso != null) {
+          filtros['pesoMinimo'] = peso;
+        }
+      }
+
+      if (tipoSelecionado.isNotEmpty) {
+        filtros['tipoCarga'] = tipoSelecionado;
+      }
+
+      // Mostrar filtros aplicados
+      final filtrosText = filtros.entries
+          .map((e) => '${e.key}: ${e.value}')
+          .join('\n');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              filtros.isEmpty
+                  ? 'Nenhum filtro aplicado - mostrando todas as cargas disponíveis'
+                  : 'Filtros aplicados:\n$filtrosText',
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Buscar cargas disponíveis na API
+      final cargas = await _apiService.buscarCargasDisponiveis(filtros);
+
+      if (!mounted) return;
+
+      // Sempre navegar para a tela de lista de cargas
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TelaListaCargas(
+            userId: widget.userId,
+            cargas: cargas,
+            filtrosAplicados: filtros,
+          ),
+        ),
+      );
+
+      // Mostrar feedback sobre a busca
+      if (cargas.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Encontradas ${cargas.length} cargas disponíveis!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhuma carga encontrada com os filtros aplicados.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao buscar cargas: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _buscando = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE6F0FA),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFE6F0FA),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TelaMenu(userId: widget.userId),
+              ),
+            );
+          },
+        ),
+      ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text(
               'Filtrar carga',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -83,12 +198,20 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
             const SizedBox(height: 20),
 
             // Campo origem
-            campoAutocomplete(origemController, 'Digite a cidade de origem', Icons.location_on),
+            campoAutocomplete(
+              origemController,
+              'Digite a cidade de origem',
+              Icons.location_on,
+            ),
 
             const SizedBox(height: 10),
 
             // Campo destino
-            campoAutocomplete(destinoController, 'Digite a cidade de destino', Icons.location_on),
+            campoAutocomplete(
+              destinoController,
+              'Digite a cidade de destino',
+              Icons.location_on,
+            ),
 
             const SizedBox(height: 10),
 
@@ -114,39 +237,39 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
             const SizedBox(height: 10),
 
             // Botões tipo carga
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
               children: [
                 botaoTipo('Seca'),
                 botaoTipo('Frigorífica'),
                 botaoTipo('Granel'),
+                botaoTipo('Outros'),
               ],
             ),
 
             const Spacer(),
 
             ElevatedButton(
+              onPressed: _buscando ? null : _buscarCargasDisponiveis,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: () {
-                print('Origem: ${origemController.text}');
-                print('Destino: ${destinoController.text}');
-                print('Peso: ${pesoController.text}');
-                print('Tipo: $tipoSelecionado');
-              },
-              child: const Text(
-                'APLICAR FILTROS',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
+              child: _buscando
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      'Buscar Cargas e Ver Resultados',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
 
             const SizedBox(height: 20),
@@ -158,7 +281,11 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
   }
 
   /// Campo com autocomplete
-  Widget campoAutocomplete(TextEditingController controller, String hint, IconData icon) {
+  Widget campoAutocomplete(
+    TextEditingController controller,
+    String hint,
+    IconData icon,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFB0CCE5),
@@ -171,30 +298,36 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
           Expanded(
             child: Autocomplete<String>(
               optionsBuilder: (TextEditingValue textEditingValue) {
-                filtrarCidades(textEditingValue.text);
-                return cidadesFiltradas;
+                return filtrarCidades(textEditingValue.text);
               },
               onSelected: (String selection) {
                 controller.text = selection;
               },
-              fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                textEditingController.text = controller.text;
-                textEditingController.selection = TextSelection.fromPosition(
-                  TextPosition(offset: textEditingController.text.length),
-                );
+              fieldViewBuilder:
+                  (
+                    context,
+                    textEditingController,
+                    focusNode,
+                    onFieldSubmitted,
+                  ) {
+                    textEditingController.text = controller.text;
+                    textEditingController
+                        .selection = TextSelection.fromPosition(
+                      TextPosition(offset: textEditingController.text.length),
+                    );
 
-                return TextField(
-                  controller: textEditingController,
-                  focusNode: focusNode,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    border: InputBorder.none,
-                  ),
-                  onChanged: (value) {
-                    controller.text = value;
+                    return TextField(
+                      controller: textEditingController,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        hintText: hint,
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (value) {
+                        controller.text = value;
+                      },
+                    );
                   },
-                );
-              },
             ),
           ),
         ],
@@ -222,8 +355,9 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
           Expanded(
             child: TextField(
               controller: controller,
-              keyboardType:
-                  somenteNumeros ? TextInputType.number : TextInputType.text,
+              keyboardType: somenteNumeros
+                  ? TextInputType.number
+                  : TextInputType.text,
               inputFormatters: somenteNumeros
                   ? [FilteringTextInputFormatter.digitsOnly]
                   : [],
@@ -234,10 +368,7 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
             ),
           ),
           if (sufixo != null)
-            Text(
-              sufixo,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text(sufixo, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -253,7 +384,7 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: selecionado ? Colors.blue[300] : const Color(0xFFB0CCE5),
           borderRadius: BorderRadius.circular(20),
@@ -263,6 +394,7 @@ class _TelaFiltroCargaState extends State<TelaFiltroCarga> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: selecionado ? Colors.white : Colors.black,
+            fontSize: 14,
           ),
         ),
       ),

@@ -1,10 +1,17 @@
+// lib/screens/caminhoneiros/tela_bancario.dart
 import 'package:flutter/material.dart';
-import 'tela_menu.dart'; 
+import 'package:truckload/services/api_service.dart';
+import 'tela_menu.dart';
 
 class TelaBancario extends StatefulWidget {
-  final String nomeCaminhoneiro;
+  final String userId; // <- obrigatório
+  final String nomeCaminhoneiro; // opcional, só para exibir
 
-  const TelaBancario({super.key, this.nomeCaminhoneiro = ''});
+  const TelaBancario({
+    super.key,
+    required this.userId, // <- agora exigimos userId
+    this.nomeCaminhoneiro = '',
+  });
 
   @override
   State<TelaBancario> createState() => _TelaBancarioState();
@@ -12,10 +19,98 @@ class TelaBancario extends StatefulWidget {
 
 class _TelaBancarioState extends State<TelaBancario> {
   bool saldoVisivel = false;
-  double saldo = 1234.56; // valor de exemplo
+  double saldo = 0.0;
+  bool _loading = true;
+  String? _error;
+  String _nomeCaminhoneiro = '';
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarDados();
+  }
+
+  Future<void> _carregarDados() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final perfil = await _apiService.getPerfilCaminhoneiro(widget.userId);
+
+      setState(() {
+        _nomeCaminhoneiro = perfil['nome'] ?? '';
+        // Por enquanto, saldo é simulado baseado na avaliação média
+        saldo = (perfil['avaliacao_media'] ?? 0.0) * 100;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFE6F0FA),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFE6F0FA),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TelaMenu(userId: widget.userId),
+                ),
+              );
+            },
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFE6F0FA),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFE6F0FA),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TelaMenu(userId: widget.userId),
+                ),
+              );
+            },
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro: $_error'),
+              ElevatedButton(
+                onPressed: _carregarDados,
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFE6F0FA),
       appBar: AppBar(
@@ -24,9 +119,12 @@ class _TelaBancarioState extends State<TelaBancario> {
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Colors.black),
           onPressed: () {
-            Navigator.push(
+            // volta para o menu passando o mesmo userId
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const TelaMenu()),
+              MaterialPageRoute(
+                builder: (context) => TelaMenu(userId: widget.userId),
+              ),
             );
           },
         ),
@@ -48,8 +146,8 @@ class _TelaBancarioState extends State<TelaBancario> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.nomeCaminhoneiro.isNotEmpty
-                          ? widget.nomeCaminhoneiro
+                      _nomeCaminhoneiro.isNotEmpty
+                          ? _nomeCaminhoneiro
                           : 'Caminhoneiro',
                       style: const TextStyle(
                         fontSize: 18,
@@ -58,8 +156,7 @@ class _TelaBancarioState extends State<TelaBancario> {
                     ),
                     Row(
                       children: [
-                        const Text("Saldo: ",
-                            style: TextStyle(fontSize: 16)),
+                        const Text("Saldo: ", style: TextStyle(fontSize: 16)),
                         Text(
                           saldoVisivel
                               ? "R\$ ${saldo.toStringAsFixed(2)}"
@@ -77,15 +174,13 @@ class _TelaBancarioState extends State<TelaBancario> {
                             size: 20,
                           ),
                           onPressed: () {
-                            setState(() {
-                              saldoVisivel = !saldoVisivel;
-                            });
+                            setState(() => saldoVisivel = !saldoVisivel);
                           },
-                        )
+                        ),
                       ],
-                    )
+                    ),
                   ],
-                )
+                ),
               ],
             ),
 
@@ -110,9 +205,8 @@ class _TelaBancarioState extends State<TelaBancario> {
             // Logo
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
-              child: Image.asset('assets/logo.png', height: 50)
-
-            )
+              child: Image.asset('assets/logo.png', height: 50),
+            ),
           ],
         ),
       ),
@@ -123,15 +217,13 @@ class _TelaBancarioState extends State<TelaBancario> {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.all(16),
       ),
       onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("$titulo clicado")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$titulo clicado")));
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -142,7 +234,10 @@ class _TelaBancarioState extends State<TelaBancario> {
             titulo,
             textAlign: TextAlign.center,
             style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
         ],
       ),

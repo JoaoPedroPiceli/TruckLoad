@@ -1,40 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
-
-// modelo da Carga
-class Carga {
-  final String motorista;
-  final String origem;
-  final String destino;
-  final String peso;
-  final String data;
-  bool avaliada;
-
-  Carga({
-    required this.motorista,
-    required this.origem,
-    required this.destino,
-    required this.peso,
-    required this.data,
-    this.avaliada = false,
-  });
-}
+import 'package:truckload/services/api_service.dart';
 
 class CargasRealizadas extends StatefulWidget {
-  const CargasRealizadas({super.key});
+  final String empresaId;
+
+  const CargasRealizadas({super.key, required this.empresaId});
 
   @override
   State<CargasRealizadas> createState() => _CargasRealizadasState();
 }
 
 class _CargasRealizadasState extends State<CargasRealizadas> {
-  // Lista dinâmica de cargas
-  final List<Carga> cargas = [
-    Carga(motorista: "João Silva", origem: "São Paulo", destino: "Rio de Janeiro", peso: "1500kg", data: "12/08/2025"),
-    Carga(motorista: "Maria Souza", origem: "Belo Horizonte", destino: "Curitiba", peso: "800kg", data: "10/08/2025", avaliada: true),
-    Carga(motorista: "Carlos Lima", origem: "Fortaleza", destino: "Recife", peso: "2000kg", data: "05/08/2025", avaliada: true),
-    Carga(motorista: "Ana Paula", origem: "Brasília", destino: "Goiânia", peso: "500kg", data: "01/08/2025"),
-  ];
+  final ApiService _apiService = ApiService();
+  List<Map<String, dynamic>> _cargas = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarCargas();
+  }
+
+  Future<void> _carregarCargas() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      // Carregar cargas concluídas da empresa
+      final cargas = await _apiService.getCargasEmpresaPorStatus(
+        widget.empresaId,
+        'concluida',
+      );
+
+      if (mounted) {
+        setState(() {
+          _cargas = cargas;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Erro ao carregar cargas: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _marcarComoAvaliada(int index) {
+    setState(() {
+      _cargas[index]['avaliada'] = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Carga marcada como avaliada!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,36 +76,99 @@ class _CargasRealizadasState extends State<CargasRealizadas> {
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Colors.black),
           onPressed: () {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const TelaMenuEmpresa()),
+              MaterialPageRoute(
+                builder: (context) =>
+                    TelaMenuEmpresa(empresaId: widget.empresaId),
+              ),
             );
           },
         ),
         title: const Text(
-          "Cargas Realizadas:",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+          "Cargas Realizadas",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: _carregarCargas,
+          ),
+        ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: cargas.length,
-        itemBuilder: (context, index) {
-          final carga = cargas[index];
-          return cargaCard(carga, index);
-        },
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? _buildErrorWidget()
+          : _buildCargasList(),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+          const SizedBox(height: 16),
+          Text(
+            _error!,
+            style: const TextStyle(fontSize: 16, color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _carregarCargas,
+            child: const Text('Tentar Novamente'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget cargaCard(Carga carga, int index) {
+  Widget _buildCargasList() {
+    if (_cargas.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle_outline, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Nenhuma carga concluída',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'As cargas concluídas aparecerão aqui',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _cargas.length,
+      itemBuilder: (context, index) {
+        final carga = _cargas[index];
+        return _buildCargaCard(carga, index);
+      },
+    );
+  }
+
+  Widget _buildCargaCard(Map<String, dynamic> carga, int index) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    final data = DateTime.tryParse(carga['data'] ?? '') ?? DateTime.now();
+    final peso = (carga['peso'] ?? 0.0).toDouble();
+    final preco = (carga['preco'] ?? 0.0).toDouble();
+    final avaliada = carga['avaliada'] ?? false;
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      color:  const Color(0xFFB0CCE5),
+      color: const Color(0xFFB0CCE5),
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 3,
       child: Padding(
@@ -83,11 +176,15 @@ class _CargasRealizadasState extends State<CargasRealizadas> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ícone do motorista
-            const CircleAvatar(
+            // Ícone da carga
+            CircleAvatar(
               radius: 25,
-              backgroundColor: Colors.grey,
-              child: Icon(Icons.person, color: Colors.white, size: 30),
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.local_shipping,
+                color: Colors.grey[800],
+                size: 30,
+              ),
             ),
             const SizedBox(width: 12),
 
@@ -96,46 +193,69 @@ class _CargasRealizadasState extends State<CargasRealizadas> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+<<<<<<< HEAD
                   const Text("CARGA", style: TextStyle(fontWeight: FontWeight.bold)),
                   Text("Motorista: ${carga.motorista}"),
                   Text("Origem: ${carga.origem}"),
                   Text("Destino: ${carga.destino}"),
                   Text("Peso: ${carga.peso}"),
                   Text("Data: ${carga.data}"),
+                  const SizedBox(height: 4),
+                  Text("Origem: ${carga['origem'] ?? 'Não informada'}"),
+                  Text("Destino: ${carga['destino'] ?? 'Não informada'}"),
+                  Text("Peso: ${peso.toStringAsFixed(1)} kg"),
+                  Text("Preço: R\$ ${preco.toStringAsFixed(2)}"),
+                  Text("Data: ${dateFormat.format(data)}"),
+                  if (carga['descricao'] != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      "Descrição: ${carga['descricao']}",
+                      style: const TextStyle(fontStyle: FontStyle.italic),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+>>>>>>> c4935c16eac91cf038f95ae30ce50af384f6b4dc
                 ],
               ),
             ),
 
+<<<<<<< HEAD
             
+            // Botões de ação
+>>>>>>> c4935c16eac91cf038f95ae30ce50af384f6b4dc
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: carga.avaliada ? Colors.grey[300] : Colors.blue[300],
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    backgroundColor: avaliada
                   ),
-                  onPressed: carga.avaliada
-                      ? null
-                      : () {
-                          setState(() {
-                            cargas[index].avaliada = true; // altera estado da carga
-                          });
-                        },
-                  child: Text(carga.avaliada ? "CARGA AVALIADA" : "AVALIAR CARGA"),
                 ),
                 const SizedBox(height: 6),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
+                    backgroundColor: Colors.green[300],
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  onPressed: () {},
-                  child: const Text("Pagamento efetuado"),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Pagamento confirmado!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "PAGAMENTO",
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ],
             ),

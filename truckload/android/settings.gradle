@@ -16,5 +16,8 @@ pluginManagement {
 }
 
 include ":app"
+<<<<<<< HEAD
 
 apply from: "${settings.ext.flutterSdkPath}/packages/flutter_tools/gradle/app_plugin_loader.gradle"
+=======
+>>>>>>> c4935c16eac91cf038f95ae30ce50af384f6b4dc

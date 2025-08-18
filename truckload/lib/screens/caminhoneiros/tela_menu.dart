@@ -5,7 +5,8 @@ import 'package:truckload/screens/caminhoneiros/tela_bancario.dart';
 import 'package:truckload/screens/caminhoneiros/tela_historico.dart';
 
 class TelaMenu extends StatelessWidget {
-  const TelaMenu({super.key});
+  final String userId; // <- precisa do id do usuário
+  const TelaMenu({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -16,10 +17,7 @@ class TelaMenu extends StatelessWidget {
           const SizedBox(height: 60),
           const Text(
             'MENU',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -32,33 +30,24 @@ class TelaMenu extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  menuItem(
-                    context,
-                    Icons.person,
-                    'Meu perfil',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TelaMeuPerfil(),
-                        ),
-                      );
-                    },
-                  ),
+                  menuItem(context, Icons.person, 'Meu perfil', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            TelaMeuPerfil(userId: userId), // <- passa o id
+                      ),
+                    );
+                  }),
                   divider(),
-                  menuItem(
-                    context,
-                    Icons.search,
-                    'Procurar carga',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TelaFiltroCarga(),
-                        ),
-                      );
-                    },
-                  ),
+                  menuItem(context, Icons.search, 'Procurar carga', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TelaFiltroCarga(userId: userId),
+                      ),
+                    );
+                  }),
                   divider(),
                   menuItem(
                     context,
@@ -68,25 +57,20 @@ class TelaMenu extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => TelaHistorico(),
+                          builder: (context) => TelaHistorico(userId: userId),
                         ),
                       );
                     },
                   ),
                   divider(),
-                  menuItem(
-                    context,
-                    Icons.attach_money,
-                    'Sistema bancário',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TelaBancario(),
-                        ),
-                      );
-                    },
-                  ),
+                  menuItem(context, Icons.attach_money, 'Sistema bancário', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TelaBancario(userId: userId),
+                      ),
+                    );
+                  }),
                   divider(),
                   const Spacer(),
                   Image.asset('assets/logo.png', height: 60),
@@ -100,7 +84,11 @@ class TelaMenu extends StatelessWidget {
   }
 
   Widget menuItem(
-      BuildContext context, IconData icon, String label, VoidCallback onTap) {
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
     return InkWell(
       onTap: onTap,
       child: Padding(

@@ -1,35 +1,115 @@
 import 'package:flutter/material.dart';
+import 'package:truckload/services/api_service.dart';
+import 'package:truckload/models/perfil_empresa.dart';
 import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
-import 'package:truckload/screens/empresas/tela_cargasRealizadas.dart';
 
-class TelaPerfilEmpresa extends StatelessWidget {
-  final String nomeEmpresa = "Nome da Empresa";
-  final String cnpj = "00.000.000/0000-00";
-  final String localizacao = "São Paulo - SP";
-  final String contato = "(11) 99999-9999";
-  final String email = "empresa@email.com";
-  final String regras = "Regras e diretrizes da empresa";
+class TelaPerfilEmpresa extends StatefulWidget {
+  final String empresaId;
 
-  TelaPerfilEmpresa({super.key});
+  const TelaPerfilEmpresa({super.key, required this.empresaId});
 
-  // Função para calcular a nota da empresa com base nas cargas
-  double calcularNota(List<Carga> cargas) {
-    if (cargas.isEmpty) return 0.0;
+  @override
+  State<TelaPerfilEmpresa> createState() => _TelaPerfilEmpresaState();
+}
 
-    int avaliadas = cargas.where((c) => c.avaliada).length;
-    return (avaliadas / cargas.length) * 5.0;
+class _TelaPerfilEmpresaState extends State<TelaPerfilEmpresa> {
+  bool _loading = true;
+  String? _error;
+  PerfilEmpresa? _perfil;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarPerfil();
+  }
+
+  Future<void> _carregarPerfil() async {
+    print(
+      'DEBUG: Carregando perfil para empresa ID: ${widget.empresaId}',
+    ); // Debug log
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      print('DEBUG: Chamando API getPerfilEmpresa...'); // Debug log
+      final perfilData = await _apiService.getPerfilEmpresa(widget.empresaId);
+      print('DEBUG: Dados recebidos da API: $perfilData'); // Debug log
+      final perfil = PerfilEmpresa.fromJson(perfilData);
+
+      setState(() {
+        _perfil = perfil;
+        _loading = false;
+      });
+    } catch (e) {
+      print('DEBUG: Erro ao carregar perfil: $e'); // Debug log
+      setState(() {
+        _error = 'Falha ao carregar: $e';
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // mudar aqui pro banco de dados)
-    final List<Carga> cargas = [
-      Carga(motorista: "João Silva", origem: "São Paulo", destino: "RJ", peso: "1500kg", data: "12/08/2025", avaliada: true),
-      Carga(motorista: "Maria Souza", origem: "BH", destino: "Curitiba", peso: "800kg", data: "10/08/2025"),
-      Carga(motorista: "Carlos Lima", origem: "Fortaleza", destino: "Recife", peso: "2000kg", data: "05/08/2025", avaliada: true),
-    ];
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFE6F0FA),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      TelaMenuEmpresa(empresaId: widget.empresaId),
+                ),
+              );
+            },
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    double nota = calcularNota(cargas);
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFE6F0FA),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      TelaMenuEmpresa(empresaId: widget.empresaId),
+                ),
+              );
+            },
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro: $_error'),
+              ElevatedButton(
+                onPressed: _carregarPerfil,
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFE6F0FA),
@@ -39,15 +119,21 @@ class TelaPerfilEmpresa extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Colors.black),
           onPressed: () {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const TelaMenuEmpresa()),
+              MaterialPageRoute(
+                builder: (context) =>
+                    TelaMenuEmpresa(empresaId: widget.empresaId),
+              ),
             );
           },
         ),
         title: Text(
-          nomeEmpresa,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          _perfil?.nomeDisplay ?? 'Empresa',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -65,25 +151,58 @@ class TelaPerfilEmpresa extends StatelessWidget {
             buildInfoItem(
               Icons.star,
               "Avaliação:",
-              "${nota.toStringAsFixed(1)} / 5.0 (de ${cargas.length} cargas)",
+              "${_perfil?.avaliacaoDisplay ?? '0.0'} / 5.0 (de ${_perfil?.avaliacaoQtd ?? 0} avaliações)",
               iconColor: Colors.amber,
             ),
-            buildInfoItem(Icons.badge, "CNPJ:", cnpj),
-            buildInfoItem(Icons.location_on, "Localização:", localizacao),
-            buildInfoItem(Icons.phone, "Contato:", contato),
-            buildInfoItem(Icons.email, "Email:", email),
-            buildInfoItem(Icons.rule, "Regras e diretrizes:", regras),
+            buildInfoItem(
+              Icons.check_circle,
+              "Taxa de conclusão:",
+              "${_perfil?.taxaConclusaoDisplay ?? '0.0'}% (${_perfil?.cargasConcluidas ?? 0}/${_perfil?.totalCargas ?? 0} cargas)",
+              iconColor: Colors.green,
+            ),
+            buildInfoItem(Icons.badge, "CNPJ:", _perfil?.cnpjDisplay ?? '—'),
+            buildInfoItem(
+              Icons.location_on,
+              "Endereço:",
+              _perfil?.enderecoDisplay ?? '—',
+            ),
+            buildInfoItem(
+              Icons.phone,
+              "Contato:",
+              _perfil?.telefoneDisplay ?? '—',
+            ),
+            buildInfoItem(Icons.email, "Email:", _perfil?.emailDisplay ?? '—'),
+            buildInfoItem(
+              Icons.description,
+              "Descrição:",
+              _perfil?.descricaoDisplay ?? '—',
+            ),
 
             const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue[300],
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
-              onPressed: () {},
+              onPressed: () {
+                // TODO: Implementar tela de edição
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Funcionalidade em desenvolvimento'),
+                  ),
+                );
+              },
               icon: const Icon(Icons.edit, color: Colors.black),
-              label: const Text("Alterar dados", style: TextStyle(color: Colors.black)),
+              label: const Text(
+                "Alterar dados",
+                style: TextStyle(color: Colors.black),
+              ),
             ),
           ],
         ),
@@ -91,7 +210,12 @@ class TelaPerfilEmpresa extends StatelessWidget {
     );
   }
 
-  Widget buildInfoItem(IconData icon, String label, String value, {Color iconColor = Colors.black}) {
+  Widget buildInfoItem(
+    IconData icon,
+    String label,
+    String value, {
+    Color iconColor = Colors.black,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -110,7 +234,12 @@ class TelaPerfilEmpresa extends StatelessWidget {
               children: [
                 Icon(icon, color: iconColor),
                 const SizedBox(width: 8),
-                Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
+                Expanded(
+                  child: Text(
+                    value,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
               ],
             ),
           ),
