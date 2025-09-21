@@ -24,6 +24,8 @@ import os
 import bcrypt
 import dns.resolver
 import socket
+import smtplib
+import re
 from email_validator import validate_email, EmailNotValidError
 
 # =============================================================================
@@ -136,6 +138,82 @@ def is_email_available(email: str) -> tuple[bool, str]:
         
     except Exception as e:
         return False, f"Erro ao verificar disponibilidade: {str(e)}"
+
+def get_mx_records(domain: str) -> list:
+    """Obtém registros MX do domínio"""
+    try:
+        mx_records = dns.resolver.resolve(domain, 'MX')
+        return [(record.preference, str(record.exchange)) for record in mx_records]
+    except Exception:
+        return []
+
+def verify_email_exists_smtp(email: str) -> tuple[bool, str]:
+    """Verifica se o email realmente existe usando SMTP"""
+    try:
+        # Extrair domínio
+        domain = email.split('@')[1]
+        
+        # Obter registros MX
+        mx_records = get_mx_records(domain)
+        if not mx_records:
+            return False, f"Domínio '{domain}' não possui registros MX"
+        
+        # Ordenar por prioridade
+        mx_records.sort()
+        
+        # Tentar conectar com o servidor MX
+        for priority, mx_host in mx_records:
+            try:
+                # Conectar ao servidor SMTP
+                server = smtplib.SMTP(mx_host, 25, timeout=10)
+                server.set_debuglevel(0)
+                
+                # Iniciar conversa SMTP
+                server.helo('truckload.com')
+                server.mail('teste@truckload.com')
+                
+                # Verificar se o email existe
+                code, message = server.rcpt(email)
+                server.quit()
+                
+                if code == 250:
+                    return True, "Email existe e pode receber mensagens"
+                elif code == 550:
+                    return False, "Email não existe ou não pode receber mensagens"
+                else:
+                    continue
+                    
+            except (smtplib.SMTPException, socket.error, OSError) as e:
+                continue
+        
+        return False, "Não foi possível verificar a existência do email"
+        
+    except Exception as e:
+        return False, f"Erro na verificação SMTP: {str(e)}"
+
+def verify_email_real_exists(email: str) -> tuple[bool, str]:
+    """Verifica se o email realmente existe (verificação completa)"""
+    try:
+        # 1. Validar formato
+        is_valid_format, formatted_email = validate_email_format(email)
+        if not is_valid_format:
+            return False, f"Formato de email inválido: {formatted_email}"
+        
+        # 2. Verificar domínio
+        domain = formatted_email.split('@')[1]
+        if not check_domain_exists(domain):
+            return False, f"Domínio '{domain}' não existe ou não está acessível"
+        
+        # 3. Verificar existência real via SMTP (opcional - pode ser lento)
+        # Comentado por enquanto para evitar timeouts em produção
+        # is_real, real_message = verify_email_exists_smtp(formatted_email)
+        # if not is_real:
+        #     return False, real_message
+        
+        return True, "Email válido e domínio existe"
+        
+    except Exception as e:
+        return False, f"Erro ao verificar email: {str(e)}"
 
 def ensure_indexes():
     db.caminhoneiros.create_index(
@@ -556,6 +634,12 @@ class EmailVerifyResponse(BaseModel):
     is_available: bool
     message: str
     domain: Optional[str] = None
+    is_real: Optional[bool] = None
+    real_message: Optional[str] = None
+
+class EmailRealVerifyRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=255, description="Email para verificação real")
+    check_smtp: bool = Field(False, description="Se deve verificar existência real via SMTP")
 
 # --- Avaliações (empresa -> caminhoneiro) ---
 class AvaliacaoCreate(BaseModel):
@@ -692,7 +776,56 @@ def verify_email(payload: EmailVerifyRequest = Body(...)):
         is_valid=is_valid,
         is_available=is_available,
         message=final_message,
-        domain=domain
+        domain=domain,
+        is_real=None,
+        real_message=None
+    )
+
+@app.post("/auth/verify-email-real", response_model=EmailVerifyResponse)
+def verify_email_real(payload: EmailRealVerifyRequest = Body(...)):
+    """Verifica se um email é válido, existe e está disponível (com verificação real opcional)"""
+    email = payload.email.strip().lower()
+    check_smtp = payload.check_smtp
+    
+    # 1. Verificar formato e existência do domínio
+    is_valid, validation_message = verify_email_exists(email)
+    
+    # 2. Verificar disponibilidade (não cadastrado)
+    is_available, availability_message = is_email_available(email)
+    
+    # 3. Verificação real via SMTP (se solicitado)
+    is_real = None
+    real_message = None
+    
+    if check_smtp and is_valid:
+        is_real, real_message = verify_email_exists_smtp(email)
+    
+    # 4. Extrair domínio para resposta
+    domain = None
+    if '@' in email:
+        domain = email.split('@')[1]
+    
+    # 5. Determinar mensagem final
+    if is_valid and is_available:
+        if is_real is True:
+            final_message = "Email válido, disponível e realmente existe"
+        elif is_real is False:
+            final_message = "Email válido e disponível, mas não foi possível confirmar existência real"
+        else:
+            final_message = "Email válido e disponível para cadastro"
+    elif is_valid and not is_available:
+        final_message = f"Email válido, mas {availability_message}"
+    else:
+        final_message = validation_message
+    
+    return EmailVerifyResponse(
+        email=email,
+        is_valid=is_valid,
+        is_available=is_available,
+        message=final_message,
+        domain=domain,
+        is_real=is_real,
+        real_message=real_message
     )
 
 # =============================================================================
