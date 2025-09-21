@@ -91,7 +91,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
     List<int> n = d.split('').map(int.parse).toList();
 
-    int _dv(List<int> base) {
+    int calcularDv(List<int> base) {
       const pesos = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
       int soma = 0;
       int off = pesos.length - base.length;
@@ -102,8 +102,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
       return resto < 2 ? 0 : 11 - resto;
     }
 
-    final d1 = _dv(n.sublist(0, 12));
-    final d2 = _dv([...n.sublist(0, 12), d1]);
+    final d1 = calcularDv(n.sublist(0, 12));
+    final d2 = calcularDv([...n.sublist(0, 12), d1]);
     return n[12] == d1 && n[13] == d2;
   }
 
@@ -230,9 +230,12 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 hint: 'Username',
                 controller: _usernameController,
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty)
+                  if (v == null || v.trim().isEmpty) {
                     return 'Informe seu nome/username';
-                  if (v.trim().length < 3) return 'Mínimo de 3 caracteres';
+                  }
+                  if (v.trim().length < 3) {
+                    return 'Mínimo de 3 caracteres';
+                  }
                   return null;
                 },
               ),
@@ -269,10 +272,12 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 inputFormatters: <TextInputFormatter>[_phoneFormatter],
                 onChanged: _ajustarMascaraTelefone,
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty)
+                  if (v == null || v.trim().isEmpty) {
                     return 'Informe o telefone';
-                  if (!_telefoneValido(v))
+                  }
+                  if (!_telefoneValido(v)) {
                     return 'Telefone inválido (use 10 ou 11 dígitos)';
+                  }
                   return null;
                 },
               ),

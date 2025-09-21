@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
 import 'package:truckload/screens/empresas/tela_menuEmpresarial.dart';
+import 'package:truckload/services/session_manager.dart';
 
 /// Base URL da API (pode vir por --dart-define)
 const String kApiBaseUrl = String.fromEnvironment(
@@ -197,6 +198,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _abrirMenuCaminhoneiro(String userId) async {
+    // Salvar sessão do caminhoneiro
+    final session = SessionManager.createSession(
+      userId: userId,
+      email: _emailCtrl.text,
+      tipo: 'caminhoneiro',
+      nome: 'Caminhoneiro', // Você pode obter o nome da resposta da API
+    );
+    await SessionManager.saveCurrentSession(session);
+
     // Cria a tela passando o userId (não use rota nomeada aqui).
     Navigator.pushReplacement(
       context,
@@ -206,6 +216,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _abrirMenuEmpresa() async {
     print('DEBUG: Abrindo menu empresa com ID: $_empresaId'); // Debug log
+
+    // Salvar sessão da empresa
+    final session = SessionManager.createSession(
+      userId: _empresaId!,
+      email: _emailCtrl.text,
+      tipo: 'empresa',
+      nome: 'Empresa', // Você pode obter o nome da resposta da API
+      empresaId: _empresaId!,
+    );
+    await SessionManager.saveCurrentSession(session);
+
     // Cria a tela passando o empresaId (não use rota nomeada aqui).
     Navigator.pushReplacement(
       context,
