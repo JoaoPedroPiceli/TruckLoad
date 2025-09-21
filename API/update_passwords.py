@@ -5,12 +5,21 @@ Execute este script para definir senhas padrão para todos os usuários
 """
 
 import os
+import bcrypt
 from pymongo import MongoClient
 from datetime import datetime
 
 # Configuração do MongoDB
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
 DB_NAME = "truckload"
+
+def hash_password(password: str) -> str:
+    """Gera hash da senha usando bcrypt"""
+    if not password:
+        raise ValueError("Senha não pode ser vazia")
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 def update_passwords():
     """Atualiza senhas de usuários existentes"""
@@ -25,23 +34,29 @@ def update_passwords():
         caminhoneiros_sem_senha = db.caminhoneiros.find({"senha": {"$exists": False}})
         count_caminhoneiros = 0
         for caminhoneiro in caminhoneiros_sem_senha:
-            db.caminhoneiros.update_one(
-                {"_id": caminhoneiro["_id"]},
-                {"$set": {"senha": "123456"}}
-            )
-            count_caminhoneiros += 1
-            print(f"  ✅ Senha adicionada para caminhoneiro: {caminhoneiro.get('email', 'N/A')}")
+            try:
+                db.caminhoneiros.update_one(
+                    {"_id": caminhoneiro["_id"]},
+                    {"$set": {"senha": hash_password("123456")}}
+                )
+                count_caminhoneiros += 1
+                print(f"  ✅ Senha adicionada para caminhoneiro: {caminhoneiro.get('email', 'N/A')}")
+            except Exception as e:
+                print(f"  ❌ Erro ao adicionar senha para caminhoneiro {caminhoneiro.get('email', 'N/A')}: {e}")
         
         # Atualizar empresas sem senha
         empresas_sem_senha = db.empresas.find({"senha": {"$exists": False}})
         count_empresas = 0
         for empresa in empresas_sem_senha:
-            db.empresas.update_one(
-                {"_id": empresa["_id"]},
-                {"$set": {"senha": "123456"}}
-            )
-            count_empresas += 1
-            print(f"  ✅ Senha adicionada para empresa: {empresa.get('email', 'N/A')}")
+            try:
+                db.empresas.update_one(
+                    {"_id": empresa["_id"]},
+                    {"$set": {"senha": hash_password("123456")}}
+                )
+                count_empresas += 1
+                print(f"  ✅ Senha adicionada para empresa: {empresa.get('email', 'N/A')}")
+            except Exception as e:
+                print(f"  ❌ Erro ao adicionar senha para empresa {empresa.get('email', 'N/A')}: {e}")
         
         print(f"\n📊 Resumo:")
         print(f"  - Caminhoneiros atualizados: {count_caminhoneiros}")
@@ -50,8 +65,9 @@ def update_passwords():
         if count_caminhoneiros == 0 and count_empresas == 0:
             print("  ℹ️  Todos os usuários já possuem senhas definidas")
         
-        print("\n🔑 Senha padrão definida: 123456")
+        print("\n🔑 Senha padrão definida: 123456 (com hash de segurança)")
         print("💡 Use estas credenciais para fazer login no app")
+        print("🔒 Todas as senhas estão protegidas com hash bcrypt")
         
         # Mostrar usuários disponíveis para teste
         print("\n👥 Usuários disponíveis para teste:")

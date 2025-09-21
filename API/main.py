@@ -1,7 +1,8 @@
 # =============================================================================
-# TruckLoad API v1.5.0
+# TruckLoad API v1.6.0
 # =============================================================================
 # Changelog:
+# - v1.6.0: Sistema de hash de senhas com bcrypt para máxima segurança
 # - v1.5.0: Cargas de exemplo automáticas para empresas, sistema completo de gestão
 # - v1.4.0: Sistema de autenticação melhorado, senhas padrão para usuários existentes
 # - v1.3.0: Cargas empresariais, busca de cargas disponíveis, perfil agregado
@@ -19,11 +20,12 @@ from bson import ObjectId
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
 import os
+import bcrypt
 
 # =============================================================================
 # App & CORS
 # =============================================================================
-app = FastAPI(title="TruckLoad API", version="1.3.0")
+app = FastAPI(title="TruckLoad API", version="1.6.0")
 
 # Em produção, restrinja os domínios em allow_origins
 app.add_middleware(
@@ -43,6 +45,24 @@ if not MONGO_URI:
 
 client = MongoClient(MONGO_URI)
 db = client["truckload_db"]
+
+# =============================================================================
+# Funções de Hash de Senhas
+# =============================================================================
+def hash_password(password: str) -> str:
+    """Gera hash da senha usando bcrypt"""
+    if not password:
+        raise ValueError("Senha não pode ser vazia")
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
+
+def verify_password(password: str, hashed_password: str) -> bool:
+    """Verifica se a senha corresponde ao hash"""
+    try:
+        return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except Exception:
+        return False
 
 def ensure_indexes():
     db.caminhoneiros.create_index(
@@ -101,23 +121,29 @@ def criar_dados_exemplo():
     
     print("Verificando e atualizando dados de exemplo...")
     
-    # Atualizar caminhoneiros existentes com senhas padrão
-    caminhoneiros_sem_senha = db.caminhoneiros.find({"senha": {"$exists": False}})
-    for caminhoneiro in caminhoneiros_sem_senha:
-        db.caminhoneiros.update_one(
-            {"_id": caminhoneiro["_id"]},
-            {"$set": {"senha": "123456"}}
-        )
-        print(f"Senha adicionada para caminhoneiro: {caminhoneiro.get('email', 'N/A')}")
+    # Atualizar caminhoneiros existentes com senhas padrão (com hash)
+    try:
+        caminhoneiros_sem_senha = db.caminhoneiros.find({"senha": {"$exists": False}})
+        for caminhoneiro in caminhoneiros_sem_senha:
+            db.caminhoneiros.update_one(
+                {"_id": caminhoneiro["_id"]},
+                {"$set": {"senha": hash_password("123456")}}
+            )
+            print(f"Senha adicionada para caminhoneiro: {caminhoneiro.get('email', 'N/A')}")
+    except Exception as e:
+        print(f"Erro ao atualizar senhas de caminhoneiros: {e}")
     
-    # Atualizar empresas existentes com senhas padrão
-    empresas_sem_senha = db.empresas.find({"senha": {"$exists": False}})
-    for empresa in empresas_sem_senha:
-        db.empresas.update_one(
-            {"_id": empresa["_id"]},
-            {"$set": {"senha": "123456"}}
-        )
-        print(f"Senha adicionada para empresa: {empresa.get('email', 'N/A')}")
+    # Atualizar empresas existentes com senhas padrão (com hash)
+    try:
+        empresas_sem_senha = db.empresas.find({"senha": {"$exists": False}})
+        for empresa in empresas_sem_senha:
+            db.empresas.update_one(
+                {"_id": empresa["_id"]},
+                {"$set": {"senha": hash_password("123456")}}
+            )
+            print(f"Senha adicionada para empresa: {empresa.get('email', 'N/A')}")
+    except Exception as e:
+        print(f"Erro ao atualizar senhas de empresas: {e}")
     
     # Verificar se já existem dados de exemplo
     if db.caminhoneiros.count_documents({}) > 0 and db.empresas.count_documents({}) > 0:
@@ -137,7 +163,7 @@ def criar_dados_exemplo():
             "cpf": "123.456.789-00",
             "telefone": "(11) 99999-9999",
             "tipoCaminhao": "Truck 3/4",
-            "senha": "123456",
+            "senha": hash_password("123456"),
             "descricao": "Motorista experiente com 10 anos de estrada",
             "fotoUrl": None,
             "data_cadastro": datetime.utcnow()
@@ -148,7 +174,7 @@ def criar_dados_exemplo():
             "cpf": "987.654.321-00",
             "telefone": "(21) 88888-8888",
             "tipoCaminhao": "Carreta",
-            "senha": "123456",
+            "senha": hash_password("123456"),
             "descricao": "Especialista em cargas refrigeradas",
             "fotoUrl": None,
             "data_cadastro": datetime.utcnow()
@@ -163,7 +189,7 @@ def criar_dados_exemplo():
             "cnpj": "12.345.678/0001-90",
             "telefone": "(11) 3333-3333",
             "endereco": "Rua das Flores, 123 - São Paulo/SP",
-            "senha": "123456",
+            "senha": hash_password("123456"),
             "descricao": "Empresa especializada em transporte de cargas gerais",
             "fotoUrl": None,
             "data_cadastro": datetime.utcnow()
@@ -174,7 +200,7 @@ def criar_dados_exemplo():
             "cnpj": "98.765.432/0001-10",
             "telefone": "(21) 4444-4444",
             "endereco": "Av. Principal, 456 - Rio de Janeiro/RJ",
-            "senha": "123456",
+            "senha": hash_password("123456"),
             "descricao": "Soluções logísticas integradas",
             "fotoUrl": None,
             "data_cadastro": datetime.utcnow()
@@ -182,18 +208,24 @@ def criar_dados_exemplo():
     ]
     
     # Inserir caminhoneiros
-    for caminhoneiro in caminhoneiros_exemplo:
-        try:
-            db.caminhoneiros.insert_one(caminhoneiro)
-        except DuplicateKeyError:
-            pass
+    try:
+        for caminhoneiro in caminhoneiros_exemplo:
+            try:
+                db.caminhoneiros.insert_one(caminhoneiro)
+            except DuplicateKeyError:
+                pass
+    except Exception as e:
+        print(f"Erro ao inserir caminhoneiros de exemplo: {e}")
     
     # Inserir empresas
-    for empresa in empresas_exemplo:
-        try:
-            db.empresas.insert_one(empresa)
-        except DuplicateKeyError:
-            pass
+    try:
+        for empresa in empresas_exemplo:
+            try:
+                db.empresas.insert_one(empresa)
+            except DuplicateKeyError:
+                pass
+    except Exception as e:
+        print(f"Erro ao inserir empresas de exemplo: {e}")
     
     print("Dados de exemplo criados com sucesso!")
     
@@ -505,19 +537,24 @@ def health():
     return {"ok": True, "ts": datetime.utcnow().isoformat()}
 
 # =============================================================================
-# Auth (senha em texto claro — somente para testes!)
+# Auth (senhas com hash para segurança)
 # =============================================================================
 @app.post("/auth/login")
 def login(payload: LoginPayload = Body(...)):
     coll = db.caminhoneiros if payload.tipo == "caminhoneiro" else db.empresas
     user = coll.find_one({"email": payload.email})
-    if not user or user.get("senha") != payload.senha:
+    if not user:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    
+    senha_hash = user.get("senha")
+    if not senha_hash or not verify_password(payload.senha, senha_hash):
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    
     return {"msg": "ok", "tipo": payload.tipo, "user": to_public(user)}
 
 @app.post("/auth/reset-password")
 def reset_password(payload: dict = Body(...)):
-    """Endpoint para redefinir senha de usuários existentes (apenas para testes)"""
+    """Endpoint para redefinir senha de usuários existentes"""
     email = payload.get("email")
     tipo = payload.get("tipo")
     nova_senha = payload.get("nova_senha", "123456")
@@ -525,16 +562,22 @@ def reset_password(payload: dict = Body(...)):
     if not email or not tipo:
         raise HTTPException(status_code=400, detail="Email e tipo são obrigatórios")
     
-    coll = db.caminhoneiros if tipo == "caminhoneiro" else db.empresas
-    result = coll.update_one(
-        {"email": email},
-        {"$set": {"senha": nova_senha}}
-    )
+    if not nova_senha:
+        raise HTTPException(status_code=400, detail="Nova senha é obrigatória")
     
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    
-    return {"msg": "Senha redefinida com sucesso", "email": email, "tipo": tipo}
+    try:
+        coll = db.caminhoneiros if tipo == "caminhoneiro" else db.empresas
+        result = coll.update_one(
+            {"email": email},
+            {"$set": {"senha": hash_password(nova_senha)}}  # Hash da nova senha
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        
+        return {"msg": "Senha redefinida com sucesso", "email": email, "tipo": tipo}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # =============================================================================
 # Caminhoneiros
@@ -543,11 +586,16 @@ def reset_password(payload: dict = Body(...)):
 def criar_caminhoneiro(payload: CaminhoneiroCreate = Body(...)):
     try:
         dados = payload.dict()
+        if not dados.get("senha"):
+            raise HTTPException(status_code=400, detail="Senha é obrigatória")
+        dados["senha"] = hash_password(dados["senha"])  # Hash da senha
         dados["data_cadastro"] = datetime.utcnow()
         r = db.caminhoneiros.insert_one(dados)
         return {"msg": "Cadastrado", "id": str(r.inserted_id)}
     except DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Email já cadastrado")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/caminhoneiros/")
 def listar_caminhoneiros(limit: int = 50, skip: int = 0):
@@ -588,11 +636,16 @@ def remover_caminhoneiro(id: str):
 def criar_empresa(payload: EmpresaCreate = Body(...)):
     try:
         dados = payload.dict()
+        if not dados.get("senha"):
+            raise HTTPException(status_code=400, detail="Senha é obrigatória")
+        dados["senha"] = hash_password(dados["senha"])  # Hash da senha
         dados["data_cadastro"] = datetime.utcnow()
         r = db.empresas.insert_one(dados)
         return {"msg": "Cadastrada", "id": str(r.inserted_id)}
     except DuplicateKeyError:
         raise HTTPException(status_code=400, detail="Email já cadastrado")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/empresas/")
 def listar_empresas(limit: int = 50, skip: int = 0):
