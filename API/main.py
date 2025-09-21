@@ -31,7 +31,10 @@ from email_validator import validate_email, EmailNotValidError
 # =============================================================================
 # App & CORS
 # =============================================================================
-app = FastAPI(title="TruckLoad API", version="1.7.0")
+app = FastAPI(title="TruckLoad API", version="1.8.2")
+
+# Blacklist de tokens inválidos (logout)
+token_blacklist = set()
 
 # Em produção, restrinja os domínios em allow_origins
 app.add_middleware(
@@ -746,6 +749,82 @@ def reset_password(payload: dict = Body(...)):
         return {"msg": "Senha redefinida com sucesso", "email": email, "tipo": tipo}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/auth/logout")
+def logout(payload: dict = Body(...)):
+    """Endpoint para logout de usuários"""
+    email = payload.get("email")
+    tipo = payload.get("tipo")
+    
+    if not email or not tipo:
+        raise HTTPException(status_code=400, detail="Email e tipo são obrigatórios")
+    
+    try:
+        # Verificar se usuário existe
+        coll = db.caminhoneiros if tipo == "caminhoneiro" else db.empresas
+        user = coll.find_one({"email": email})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado")
+        
+        # Adicionar token à blacklist (se houver sistema de tokens no futuro)
+        # Por enquanto, apenas confirmar logout
+        return {
+            "msg": "Logout realizado com sucesso", 
+            "email": email, 
+            "tipo": tipo,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro no logout: {str(e)}")
+
+@app.post("/auth/logout-caminhoneiro")
+def logout_caminhoneiro(payload: dict = Body(...)):
+    """Endpoint específico para logout de caminhoneiros"""
+    email = payload.get("email")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email é obrigatório")
+    
+    try:
+        # Verificar se caminhoneiro existe
+        user = db.caminhoneiros.find_one({"email": email})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Caminhoneiro não encontrado")
+        
+        return {
+            "msg": "Logout do caminhoneiro realizado com sucesso", 
+            "email": email,
+            "tipo": "caminhoneiro",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro no logout: {str(e)}")
+
+@app.post("/auth/logout-empresa")
+def logout_empresa(payload: dict = Body(...)):
+    """Endpoint específico para logout de empresas"""
+    email = payload.get("email")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email é obrigatório")
+    
+    try:
+        # Verificar se empresa existe
+        user = db.empresas.find_one({"email": email})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        return {
+            "msg": "Logout da empresa realizado com sucesso", 
+            "email": email,
+            "tipo": "empresa",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro no logout: {str(e)}")
 
 @app.post("/auth/verify-email", response_model=EmailVerifyResponse)
 def verify_email(payload: EmailVerifyRequest = Body(...)):
