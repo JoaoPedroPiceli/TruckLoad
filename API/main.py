@@ -851,11 +851,6 @@ def criar_caminhoneiro(payload: CaminhoneiroCreate = Body(...)):
         if not is_available:
             raise HTTPException(status_code=400, detail=f"Email não disponível: {availability_message}")
         
-        # Verificar se email realmente existe (verificação real)
-        is_real, real_message = verify_email_exists_smtp(email)
-        if not is_real:
-            raise HTTPException(status_code=400, detail=f"Email não existe realmente: {real_message}")
-        
         # Processar dados
         dados["email"] = email  # Garantir email em lowercase
         dados["senha"] = hash_password(dados["senha"])  # Hash da senha
@@ -922,11 +917,6 @@ def criar_empresa(payload: EmpresaCreate = Body(...)):
         is_available, availability_message = is_email_available(email)
         if not is_available:
             raise HTTPException(status_code=400, detail=f"Email não disponível: {availability_message}")
-        
-        # Verificar se email realmente existe (verificação real)
-        is_real, real_message = verify_email_exists_smtp(email)
-        if not is_real:
-            raise HTTPException(status_code=400, detail=f"Email não existe realmente: {real_message}")
         
         # Processar dados
         dados["email"] = email  # Garantir email em lowercase
