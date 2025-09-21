@@ -5,9 +5,9 @@ import 'package:truckload/screens/empresas/tela_cargasPendentes.dart';
 import 'package:truckload/screens/empresas/tela_perfilEmpresarial.dart';
 
 class TelaMenuEmpresa extends StatelessWidget {
-  final String empresaId;
+  final String? empresaId;
 
-  const TelaMenuEmpresa({super.key, required this.empresaId});
+  const TelaMenuEmpresa({super.key, this.empresaId});
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class TelaMenuEmpresa extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              TelaPerfilEmpresa(empresaId: empresaId),
+                              TelaPerfilEmpresa(empresaId: empresaId ?? ''),
                         ),
                       );
                     },
@@ -55,7 +55,7 @@ class TelaMenuEmpresa extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              AdicionarCarga(empresaId: empresaId),
+                              AdicionarCarga(empresaId: empresaId ?? ''),
                         ),
                       );
                     },
@@ -70,7 +70,7 @@ class TelaMenuEmpresa extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              CargasRealizadas(empresaId: empresaId),
+                              CargasRealizadas(empresaId: empresaId ?? ''),
                         ),
                       );
                     },
@@ -85,7 +85,7 @@ class TelaMenuEmpresa extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              CargasPendentes(empresaId: empresaId),
+                              CargasPendentes(empresaId: empresaId ?? ''),
                         ),
                       );
                     },

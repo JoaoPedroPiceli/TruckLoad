@@ -193,14 +193,7 @@ class _CargasRealizadasState extends State<CargasRealizadas> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-<<<<<<< HEAD
                   const Text("CARGA", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text("Motorista: ${carga.motorista}"),
-                  Text("Origem: ${carga.origem}"),
-                  Text("Destino: ${carga.destino}"),
-                  Text("Peso: ${carga.peso}"),
-                  Text("Data: ${carga.data}"),
-                  const SizedBox(height: 4),
                   Text("Origem: ${carga['origem'] ?? 'Não informada'}"),
                   Text("Destino: ${carga['destino'] ?? 'Não informada'}"),
                   Text("Peso: ${peso.toStringAsFixed(1)} kg"),
@@ -215,47 +208,42 @@ class _CargasRealizadasState extends State<CargasRealizadas> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
->>>>>>> c4935c16eac91cf038f95ae30ce50af384f6b4dc
                 ],
               ),
             ),
 
-<<<<<<< HEAD
-            
             // Botões de ação
->>>>>>> c4935c16eac91cf038f95ae30ce50af384f6b4dc
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 ElevatedButton(
+                  onPressed: () {
+                    // Ação do botão
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: avaliada
-                  ),
-                ),
-                const SizedBox(height: 6),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[300],
-                    foregroundColor: Colors.black,
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    backgroundColor: avaliada ? Colors.green : Colors.grey,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+                  child: Text(avaliada ? 'Avaliada' : 'Pendente'),
+                ),
+                const SizedBox(height: 6),
+                ElevatedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pagamento confirmado!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    // Ação do segundo botão
                   },
-                  child: const Text(
-                    "PAGAMENTO",
-                    style: TextStyle(fontSize: 12),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[300],
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
+                  child: const Text('Ver detalhes'),
                 ),
               ],
             ),

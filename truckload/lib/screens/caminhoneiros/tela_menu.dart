@@ -5,8 +5,8 @@ import 'package:truckload/screens/caminhoneiros/tela_bancario.dart';
 import 'package:truckload/screens/caminhoneiros/tela_historico.dart';
 
 class TelaMenu extends StatelessWidget {
-  final String userId; // <- precisa do id do usuário
-  const TelaMenu({super.key, required this.userId});
+  final String? userId; // <- precisa do id do usuário
+  const TelaMenu({super.key, this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,7 @@ class TelaMenu extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            TelaMeuPerfil(userId: userId), // <- passa o id
+                            TelaMeuPerfil(userId: userId ?? ''), // <- passa o id
                       ),
                     );
                   }),
@@ -44,7 +44,7 @@ class TelaMenu extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TelaFiltroCarga(userId: userId),
+                        builder: (context) => TelaFiltroCarga(userId: userId ?? ''),
                       ),
                     );
                   }),
@@ -57,7 +57,7 @@ class TelaMenu extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => TelaHistorico(userId: userId),
+                          builder: (context) => TelaHistorico(userId: userId ?? ''),
                         ),
                       );
                     },
@@ -67,7 +67,7 @@ class TelaMenu extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TelaBancario(userId: userId),
+                        builder: (context) => TelaBancario(userId: userId ?? ''),
                       ),
                     );
                   }),
