@@ -1,7 +1,8 @@
 # =============================================================================
-# TruckLoad API v1.6.0
+# TruckLoad API v1.7.0
 # =============================================================================
 # Changelog:
+# - v1.7.0: Sistema de verificação de email com validação de domínio e disponibilidade
 # - v1.6.0: Sistema de hash de senhas com bcrypt para máxima segurança
 # - v1.5.0: Cargas de exemplo automáticas para empresas, sistema completo de gestão
 # - v1.4.0: Sistema de autenticação melhorado, senhas padrão para usuários existentes
@@ -21,11 +22,14 @@ from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
 import os
 import bcrypt
+import dns.resolver
+import socket
+from email_validator import validate_email, EmailNotValidError
 
 # =============================================================================
 # App & CORS
 # =============================================================================
-app = FastAPI(title="TruckLoad API", version="1.6.0")
+app = FastAPI(title="TruckLoad API", version="1.7.0")
 
 # Em produção, restrinja os domínios em allow_origins
 app.add_middleware(
@@ -63,6 +67,75 @@ def verify_password(password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
     except Exception:
         return False
+
+# =============================================================================
+# Funções de Verificação de Email
+# =============================================================================
+def validate_email_format(email: str) -> tuple[bool, str]:
+    """Valida o formato do email"""
+    try:
+        # Validar formato do email
+        valid = validate_email(email)
+        return True, valid.email
+    except EmailNotValidError as e:
+        return False, str(e)
+
+def check_domain_exists(domain: str) -> bool:
+    """Verifica se o domínio do email existe"""
+    try:
+        # Verificar se o domínio tem registros MX ou A
+        try:
+            dns.resolver.resolve(domain, 'MX')
+            return True
+        except dns.resolver.NXDOMAIN:
+            # Se não tem MX, verificar se tem registro A
+            try:
+                dns.resolver.resolve(domain, 'A')
+                return True
+            except dns.resolver.NXDOMAIN:
+                return False
+        except Exception:
+            return False
+    except Exception:
+        return False
+
+def verify_email_exists(email: str) -> tuple[bool, str]:
+    """Verifica se o email existe e é válido"""
+    try:
+        # 1. Validar formato
+        is_valid_format, formatted_email = validate_email_format(email)
+        if not is_valid_format:
+            return False, f"Formato de email inválido: {formatted_email}"
+        
+        # 2. Extrair domínio
+        domain = formatted_email.split('@')[1]
+        
+        # 3. Verificar se domínio existe
+        if not check_domain_exists(domain):
+            return False, f"Domínio '{domain}' não existe ou não está acessível"
+        
+        return True, "Email válido e domínio existe"
+        
+    except Exception as e:
+        return False, f"Erro ao verificar email: {str(e)}"
+
+def is_email_available(email: str) -> tuple[bool, str]:
+    """Verifica se o email está disponível (não cadastrado)"""
+    try:
+        # Verificar se já existe caminhoneiro com este email
+        caminhoneiro = db.caminhoneiros.find_one({"email": email})
+        if caminhoneiro:
+            return False, "Email já cadastrado como caminhoneiro"
+        
+        # Verificar se já existe empresa com este email
+        empresa = db.empresas.find_one({"email": email})
+        if empresa:
+            return False, "Email já cadastrado como empresa"
+        
+        return True, "Email disponível"
+        
+    except Exception as e:
+        return False, f"Erro ao verificar disponibilidade: {str(e)}"
 
 def ensure_indexes():
     db.caminhoneiros.create_index(
@@ -473,6 +546,17 @@ class LoginPayload(BaseModel):
     senha: str = Field(..., min_length=1)
     tipo: Literal["caminhoneiro", "empresa"]
 
+# --- Verificação de Email ---
+class EmailVerifyRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=255, description="Email para verificar")
+
+class EmailVerifyResponse(BaseModel):
+    email: str
+    is_valid: bool
+    is_available: bool
+    message: str
+    domain: Optional[str] = None
+
 # --- Avaliações (empresa -> caminhoneiro) ---
 class AvaliacaoCreate(BaseModel):
     caminhoneiroId: str = Field(..., description="ObjectId do caminhoneiro")
@@ -579,6 +663,38 @@ def reset_password(payload: dict = Body(...)):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.post("/auth/verify-email", response_model=EmailVerifyResponse)
+def verify_email(payload: EmailVerifyRequest = Body(...)):
+    """Verifica se um email é válido, existe e está disponível"""
+    email = payload.email.strip().lower()
+    
+    # 1. Verificar formato e existência do domínio
+    is_valid, validation_message = verify_email_exists(email)
+    
+    # 2. Verificar disponibilidade (não cadastrado)
+    is_available, availability_message = is_email_available(email)
+    
+    # 3. Extrair domínio para resposta
+    domain = None
+    if '@' in email:
+        domain = email.split('@')[1]
+    
+    # 4. Determinar mensagem final
+    if is_valid and is_available:
+        final_message = "Email válido e disponível para cadastro"
+    elif is_valid and not is_available:
+        final_message = f"Email válido, mas {availability_message}"
+    else:
+        final_message = validation_message
+    
+    return EmailVerifyResponse(
+        email=email,
+        is_valid=is_valid,
+        is_available=is_available,
+        message=final_message,
+        domain=domain
+    )
+
 # =============================================================================
 # Caminhoneiros
 # =============================================================================
@@ -586,10 +702,26 @@ def reset_password(payload: dict = Body(...)):
 def criar_caminhoneiro(payload: CaminhoneiroCreate = Body(...)):
     try:
         dados = payload.dict()
+        email = dados.get("email", "").strip().lower()
+        
+        # Verificar senha
         if not dados.get("senha"):
             raise HTTPException(status_code=400, detail="Senha é obrigatória")
+        
+        # Verificar email
+        is_valid, validation_message = verify_email_exists(email)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=f"Email inválido: {validation_message}")
+        
+        is_available, availability_message = is_email_available(email)
+        if not is_available:
+            raise HTTPException(status_code=400, detail=f"Email não disponível: {availability_message}")
+        
+        # Processar dados
+        dados["email"] = email  # Garantir email em lowercase
         dados["senha"] = hash_password(dados["senha"])  # Hash da senha
         dados["data_cadastro"] = datetime.utcnow()
+        
         r = db.caminhoneiros.insert_one(dados)
         return {"msg": "Cadastrado", "id": str(r.inserted_id)}
     except DuplicateKeyError:
@@ -636,10 +768,26 @@ def remover_caminhoneiro(id: str):
 def criar_empresa(payload: EmpresaCreate = Body(...)):
     try:
         dados = payload.dict()
+        email = dados.get("email", "").strip().lower()
+        
+        # Verificar senha
         if not dados.get("senha"):
             raise HTTPException(status_code=400, detail="Senha é obrigatória")
+        
+        # Verificar email
+        is_valid, validation_message = verify_email_exists(email)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=f"Email inválido: {validation_message}")
+        
+        is_available, availability_message = is_email_available(email)
+        if not is_available:
+            raise HTTPException(status_code=400, detail=f"Email não disponível: {availability_message}")
+        
+        # Processar dados
+        dados["email"] = email  # Garantir email em lowercase
         dados["senha"] = hash_password(dados["senha"])  # Hash da senha
         dados["data_cadastro"] = datetime.utcnow()
+        
         r = db.empresas.insert_one(dados)
         return {"msg": "Cadastrada", "id": str(r.inserted_id)}
     except DuplicateKeyError:
