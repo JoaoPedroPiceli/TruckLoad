@@ -3,6 +3,7 @@ import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
 import 'package:truckload/screens/caminhoneiros/tela_FiltroCarga.dart';
 import 'package:truckload/screens/caminhoneiros/tela_detalhe_carga.dart';
 import 'package:truckload/services/api_service.dart';
+import 'package:truckload/screens/caminhoneiros/tela_historico.dart';
 
 class TelaListaCargas extends StatefulWidget {
   final String userId;
@@ -125,7 +126,7 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.blue.withOpacity(0.3)),
               ),
@@ -163,7 +164,7 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -283,7 +284,7 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.2),
+          color: isSelected ? Colors.blue : Colors.grey.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -315,7 +316,7 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -328,7 +329,7 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -527,14 +528,55 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Implementar aceitação da carga
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Funcionalidade em desenvolvimento'),
-                          backgroundColor: Colors.green,
-                        ),
+                    onPressed: () async {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
                       );
+
+                      try {
+                        final api = ApiService();
+                        final empresaId =
+                            (carga['empresaId'] ?? carga['_idEmpresa'] ?? '')
+                                .toString();
+                        final tituloCarga = (carga['titulo'] ?? 'Carga aceita')
+                            .toString();
+
+                        await api.criarCarga({
+                          'caminhoneiroId': widget.userId,
+                          if (empresaId.isNotEmpty) 'empresaId': empresaId,
+                          'status': 'aceita',
+                          'titulo': tituloCarga,
+                        });
+
+                        if (!mounted) return;
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Carga aceita com sucesso!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                TelaHistorico(userId: widget.userId),
+                          ),
+                        );
+                      } catch (e) {
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Falha ao aceitar carga: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: const Icon(Icons.check_circle),
                     label: const Text('Aceitar Carga'),

@@ -345,7 +345,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.blue[100]?.withOpacity(0.6),
+            color: Colors.blue[100]?.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(20),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -387,7 +387,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.blue[100]?.withOpacity(0.6),
+            color: Colors.blue[100]?.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(20),
           ),
           child: TextField(
@@ -431,7 +431,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.blue[100]?.withOpacity(0.6),
+            color: Colors.blue[100]?.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(20),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -488,7 +488,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.blue[100]?.withOpacity(0.6),
+            color: Colors.blue[100]?.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(20),
           ),
           child: TextField(
@@ -530,7 +530,7 @@ class _AdicionarCargaState extends State<AdicionarCarga> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.blue[100]?.withOpacity(0.6),
+            color: Colors.blue[100]?.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(20),
           ),
           child: TextField(

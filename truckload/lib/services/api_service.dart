@@ -147,6 +147,31 @@ class ApiService {
     }
   }
 
+  /// Aceitar uma carga empresarial e vincular ao caminhoneiro
+  Future<Map<String, dynamic>> aceitarCargaEmpresa({
+    required String cargaEmpresaId,
+    required String caminhoneiroId,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '$kApiBaseUrl/cargas-empresa/$cargaEmpresaId/aceitar',
+      );
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'caminhoneiroId': caminhoneiroId}),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Erro ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Falha ao aceitar carga: $e');
+    }
+  }
+
   /// Atualizar status de uma carga
   Future<Map<String, dynamic>> atualizarCarga(
     String cargaId,

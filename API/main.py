@@ -655,6 +655,8 @@ class AvaliacaoCreate(BaseModel):
 class CargaCreate(BaseModel):
     caminhoneiroId: str
     empresaId: Optional[str] = None
+    # vínculo com carga empresarial (opcional)
+    cargaEmpresaId: Optional[str] = None
     status: Literal[
         "pendente",
         "aceita",
@@ -675,6 +677,7 @@ class CargaUpdate(BaseModel):
         ]
     ] = None
     titulo: Optional[str] = None
+    cargaEmpresaId: Optional[str] = None
 
 # --- Cargas Empresariais ---
 class CargaEmpresaCreate(BaseModel):
@@ -1130,6 +1133,50 @@ def criar_carga_empresa(payload: CargaEmpresaCreate = Body(...)):
     data["created_at"] = datetime.utcnow()
     r = db.cargas_empresa.insert_one(data)
     return {"msg": "Carga empresarial criada", "id": str(r.inserted_id)}
+
+@app.post("/cargas-empresa/{id}/aceitar")
+def aceitar_carga_empresa(
+    id: str = Path(..., description="ObjectId da carga empresarial"),
+    payload: dict = Body(...),
+):
+    """Aceita uma carga empresarial disponível, vinculando a um caminhoneiro.
+    - Atualiza status da carga empresarial para 'em_transito'
+    - Cria um registro em 'cargas' com status 'aceita' vinculado ao caminhoneiro
+    """
+    caminhoneiro_id = (payload or {}).get("caminhoneiroId")
+    if not caminhoneiro_id:
+        raise HTTPException(status_code=400, detail="caminhoneiroId é obrigatório")
+
+    try:
+        _id = to_objid(id)
+        # Verifica carga empresarial
+        doc = db.cargas_empresa.find_one({"_id": _id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Carga empresarial não encontrada")
+
+        status_atual = (doc.get("status") or "").lower()
+        if status_atual != "disponivel":
+            raise HTTPException(status_code=400, detail="Carga não está disponível para aceitação")
+
+        # Atualiza status para em_transito
+        db.cargas_empresa.update_one({"_id": _id}, {"$set": {"status": "em_transito"}})
+
+        # Cria carga vinculada ao caminhoneiro
+        carga_reg = {
+            "caminhoneiroId": to_objid(caminhoneiro_id),
+            "empresaId": doc.get("empresaId"),
+            "cargaEmpresaId": _id,
+            "status": "aceita",
+            "titulo": doc.get("titulo") or "Carga aceita",
+            "created_at": datetime.utcnow(),
+        }
+        r = db.cargas.insert_one(carga_reg)
+
+        return {"msg": "Carga aceita", "cargaId": str(r.inserted_id)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao aceitar carga: {e}")
 
 @app.get("/cargas-empresa/")
 def listar_cargas_empresa(
