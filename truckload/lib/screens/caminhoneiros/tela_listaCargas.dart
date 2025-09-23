@@ -549,6 +549,11 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
                           if (empresaId.isNotEmpty) 'empresaId': empresaId,
                           'status': 'aceita',
                           'titulo': tituloCarga,
+                          'origem': carga['origem']?.toString(),
+                          'destino': carga['destino']?.toString(),
+                          'peso': carga['peso']?.toDouble(),
+                          'tipoCarga': carga['tipoCarga']?.toString(),
+                          'descricao': carga['descricao']?.toString(),
                         });
 
                         if (!mounted) return;
