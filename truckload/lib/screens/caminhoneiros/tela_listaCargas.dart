@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:truckload/screens/caminhoneiros/tela_menu.dart';
 import 'package:truckload/screens/caminhoneiros/tela_FiltroCarga.dart';
+import 'package:truckload/screens/caminhoneiros/tela_detalhe_carga.dart';
+import 'package:truckload/services/api_service.dart';
 
 class TelaListaCargas extends StatefulWidget {
   final String userId;
@@ -473,11 +475,44 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: Implementar visualização detalhada da carga
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Funcionalidade em desenvolvimento'),
+                    onPressed: () async {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
+                      );
+
+                      Map<String, dynamic> cargaDetalhada = carga;
+                      try {
+                        final id = (carga['id'] ?? carga['_id'])?.toString();
+                        if (id != null && id.isNotEmpty) {
+                          final api = ApiService();
+                          final detalhada = await api.getCargaEmpresa(id);
+                          if (detalhada.isNotEmpty) {
+                            cargaDetalhada = detalhada;
+                          }
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Falha ao carregar detalhes: $e'),
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (mounted) Navigator.of(context).pop();
+                      }
+
+                      if (!mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TelaDetalheCarga(
+                            carga: cargaDetalhada,
+                            userId: widget.userId,
+                          ),
                         ),
                       );
                     },

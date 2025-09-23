@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:truckload/services/api_service.dart';
+import 'package:truckload/screens/caminhoneiros/tela_historico.dart';
 
 class TelaDetalheCarga extends StatelessWidget {
   final Map<String, dynamic> carga;
   final String userId;
 
-  const TelaDetalheCarga(
-      {super.key, required this.carga, required this.userId});
+  const TelaDetalheCarga({
+    super.key,
+    required this.carga,
+    required this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,18 +64,28 @@ class TelaDetalheCarga extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('Empresa: $empresa',
-                    style: TextStyle(color: Colors.grey[700])),
+                Text(
+                  'Empresa: $empresa',
+                  style: TextStyle(color: Colors.grey[700]),
+                ),
                 const SizedBox(height: 16),
                 _secao('Descrição', descricao),
                 const SizedBox(height: 12),
-                _linhaIcone(Icons.local_shipping, 'Tipo de Carga', tipoCarga,
-                    Colors.blue),
+                _linhaIcone(
+                  Icons.local_shipping,
+                  'Tipo de Carga',
+                  tipoCarga,
+                  Colors.blue,
+                ),
                 const SizedBox(height: 8),
                 _linhaIcone(Icons.scale, 'Peso', '${peso} kg', Colors.orange),
                 const SizedBox(height: 8),
                 _linhaIcone(
-                    Icons.attach_money, 'Preço', 'R\$ ${preco}', Colors.green),
+                  Icons.attach_money,
+                  'Preço',
+                  'R\$ ${preco}',
+                  Colors.green,
+                ),
                 const SizedBox(height: 8),
                 _linhaIcone(Icons.calendar_today, 'Data', data, Colors.indigo),
                 const SizedBox(height: 16),
@@ -93,13 +108,50 @@ class TelaDetalheCarga extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Aceitar carga em desenvolvimento'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                        onPressed: () async {
+                          // Aceitar carga: cria um registro em /cargas/ com status 'aceita'
+                          try {
+                            final api = ApiService();
+                            final empresaId =
+                                (carga['empresaId'] ??
+                                        carga['empresa_id'] ??
+                                        '')
+                                    .toString();
+                            final tituloCarga =
+                                (carga['titulo'] ?? 'Carga aceita').toString();
+
+                            await api.criarCarga({
+                              'caminhoneiroId': userId,
+                              if (empresaId.isNotEmpty) 'empresaId': empresaId,
+                              'status': 'aceita',
+                              'titulo': tituloCarga,
+                            });
+
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Carga aceita com sucesso!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+
+                            // Vai para histórico
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => TelaHistorico(userId: userId),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Falha ao aceitar carga: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.check_circle),
                         label: const Text('Aceitar Carga'),
@@ -110,7 +162,7 @@ class TelaDetalheCarga extends StatelessWidget {
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -238,10 +290,7 @@ class TelaDetalheCarga extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          titulo,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(conteudo),
       ],
@@ -254,9 +303,15 @@ class TelaDetalheCarga extends StatelessWidget {
         Icon(icon, color: cor),
         const SizedBox(width: 8),
         Expanded(
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.w500))),
-        Text(valor, style: TextStyle(color: cor, fontWeight: FontWeight.bold)),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        Text(
+          valor,
+          style: TextStyle(color: cor, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }
@@ -276,10 +331,7 @@ class TelaDetalheCarga extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Origem: $origem'),
-                Text('Destino: $destino'),
-              ],
+              children: [Text('Origem: $origem'), Text('Destino: $destino')],
             ),
           ),
         ],

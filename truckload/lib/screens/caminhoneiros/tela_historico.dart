@@ -81,12 +81,9 @@ class _TelaHistoricoState extends State<TelaHistorico> {
       );
     }
 
-    DateTime hoje = DateTime.now();
-
-    List<Carga> futuras = _cargas.where((c) => c.data.isAfter(hoje)).toList();
-    List<Carga> realizadas = _cargas
-        .where((c) => !c.data.isAfter(hoje))
-        .toList();
+    // Agrupar por status, independente da data
+    final aceitas = _cargas.where((c) => c.status == 'aceita').toList();
+    final concluidas = _cargas.where((c) => c.status == 'concluida').toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFD4E1FF),
@@ -100,10 +97,10 @@ class _TelaHistoricoState extends State<TelaHistorico> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Futuros Fretes
-              if (futuras.isNotEmpty) ...[
+              // Cargas Aceitas
+              if (aceitas.isNotEmpty) ...[
                 Text(
-                  'Futuros Fretes',
+                  'Cargas aceitas',
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.blue[700],
@@ -112,8 +109,8 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                 ),
                 const SizedBox(height: 8),
                 Column(
-                  children: futuras
-                      .map((carga) => cargaCard(context, carga, futuro: true))
+                  children: aceitas
+                      .map((carga) => cargaCard(context, carga, futuro: false))
                       .toList(),
                 ),
                 const SizedBox(height: 20),
@@ -130,7 +127,7 @@ class _TelaHistoricoState extends State<TelaHistorico> {
               ),
               const SizedBox(height: 8),
               Column(
-                children: realizadas
+                children: concluidas
                     .map((carga) => cargaCard(context, carga, futuro: false))
                     .toList(),
               ),
@@ -188,19 +185,78 @@ class _TelaHistoricoState extends State<TelaHistorico> {
           const SizedBox(width: 8),
 
           // Botão de ação
-          futuro
-              ? ElevatedButton(
-                  onPressed: () {
-                    // Cancelar carga futura
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Carga cancelada')),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                  ),
-                  child: const Text('CANCELAR'),
+          // Se status for 'aceita', permitir cancelar e concluir
+          (carga.status == 'aceita')
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          try {
+                            final api = ApiService();
+                            await api.atualizarCarga(carga.id, {
+                              'status': 'cancelada_pelo_motorista',
+                            });
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Carga cancelada!'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            _carregarCargas();
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Falha ao cancelar: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          side: const BorderSide(color: Colors.black54),
+                        ),
+                        child: const Text('CANCELAR'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            final api = ApiService();
+                            await api.atualizarCarga(carga.id, {
+                              'status': 'concluida',
+                            });
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Carga concluída!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            _carregarCargas();
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Falha ao concluir: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                        ),
+                        child: const Text('CONCLUIR'),
+                      ),
+                    ),
+                  ],
                 )
               : carga.avaliada
               ? Container(
