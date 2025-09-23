@@ -187,76 +187,78 @@ class _TelaHistoricoState extends State<TelaHistorico> {
           // Botão de ação
           // Se status for 'aceita', permitir cancelar e concluir
           (carga.status == 'aceita')
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          try {
-                            final api = ApiService();
-                            await api.atualizarCarga(carga.id, {
-                              'status': 'cancelada_pelo_motorista',
-                            });
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Carga cancelada!'),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                            _carregarCargas();
-                          } catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Falha ao cancelar: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.black,
-                          side: const BorderSide(color: Colors.black54),
+              ? Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            try {
+                              final api = ApiService();
+                              await api.atualizarCarga(carga.id, {
+                                'status': 'cancelada_pelo_motorista',
+                              });
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Carga cancelada!'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              _carregarCargas();
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Falha ao cancelar: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            side: const BorderSide(color: Colors.black54),
+                          ),
+                          child: const Text('CANCELAR'),
                         ),
-                        child: const Text('CANCELAR'),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          try {
-                            final api = ApiService();
-                            await api.atualizarCarga(carga.id, {
-                              'status': 'concluida',
-                            });
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Carga concluída!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            _carregarCargas();
-                          } catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Falha ao concluir: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              final api = ApiService();
+                              await api.atualizarCarga(carga.id, {
+                                'status': 'concluida',
+                              });
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Carga concluída!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              _carregarCargas();
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Falha ao concluir: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                          ),
+                          child: const Text('CONCLUIR'),
                         ),
-                        child: const Text('CONCLUIR'),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 )
               : carga.avaliada
               ? Container(

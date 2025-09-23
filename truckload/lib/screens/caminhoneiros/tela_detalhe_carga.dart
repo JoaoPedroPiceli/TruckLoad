@@ -109,34 +109,42 @@ class TelaDetalheCarga extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          // Aceitar carga: cria um registro em /cargas/ com status 'aceita'
                           try {
                             final api = ApiService();
-                            final empresaId =
-                                (carga['empresaId'] ??
-                                        carga['empresa_id'] ??
-                                        '')
-                                    .toString();
-                            final tituloCarga =
-                                (carga['titulo'] ?? 'Carga aceita').toString();
+                            final cargaEmpresaId = (carga['id'] ?? carga['_id'])
+                                ?.toString();
 
-                            await api.criarCarga({
-                              'caminhoneiroId': userId,
-                              if (empresaId.isNotEmpty) 'empresaId': empresaId,
-                              'status': 'aceita',
-                              'titulo': tituloCarga,
-                            });
+                            if (cargaEmpresaId != null &&
+                                cargaEmpresaId.isNotEmpty) {
+                              await api.aceitarCargaEmpresa(
+                                cargaEmpresaId: cargaEmpresaId,
+                                caminhoneiroId: userId,
+                              );
+                            } else {
+                              final empresaId =
+                                  (carga['empresaId'] ??
+                                          carga['empresa_id'] ??
+                                          '')
+                                      .toString();
+                              final tituloCarga =
+                                  (carga['titulo'] ?? 'Carga aceita')
+                                      .toString();
+                              await api.criarCarga({
+                                'caminhoneiroId': userId,
+                                if (empresaId.isNotEmpty)
+                                  'empresaId': empresaId,
+                                'status': 'aceita',
+                                'titulo': tituloCarga,
+                              });
+                            }
 
                             if (!context.mounted) return;
-
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Carga aceita com sucesso!'),
                                 backgroundColor: Colors.green,
                               ),
                             );
-
-                            // Vai para histórico
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(

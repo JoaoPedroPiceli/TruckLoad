@@ -1134,7 +1134,7 @@ def criar_carga_empresa(payload: CargaEmpresaCreate = Body(...)):
     r = db.cargas_empresa.insert_one(data)
     return {"msg": "Carga empresarial criada", "id": str(r.inserted_id)}
 
-@app.post("/cargas-empresa/{id}/aceitar")
+@app.post("/cargas-empresa/{id}/aceitar", status_code=201)
 def aceitar_carga_empresa(
     id: str = Path(..., description="ObjectId da carga empresarial"),
     payload: dict = Body(...),
@@ -1161,13 +1161,17 @@ def aceitar_carga_empresa(
         # Atualiza status para em_transito
         db.cargas_empresa.update_one({"_id": _id}, {"$set": {"status": "em_transito"}})
 
-        # Cria carga vinculada ao caminhoneiro
+        # Cria carga vinculada ao caminhoneiro com dados completos
         carga_reg = {
             "caminhoneiroId": to_objid(caminhoneiro_id),
             "empresaId": doc.get("empresaId"),
             "cargaEmpresaId": _id,
             "status": "aceita",
             "titulo": doc.get("titulo") or "Carga aceita",
+            "origem": doc.get("origem"),
+            "destino": doc.get("destino"),
+            "peso": doc.get("peso"),
+            "tipoCarga": doc.get("tipoCarga"),
             "created_at": datetime.utcnow(),
         }
         r = db.cargas.insert_one(carga_reg)

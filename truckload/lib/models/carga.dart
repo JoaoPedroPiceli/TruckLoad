@@ -26,19 +26,35 @@ class Carga {
   });
 
   factory Carga.fromJson(Map<String, dynamic> json) {
+    // Parse da data de forma mais robusta
+    DateTime data;
+    try {
+      if (json['created_at'] != null) {
+        if (json['created_at'] is String) {
+          data = DateTime.parse(json['created_at']);
+        } else if (json['created_at'] is int) {
+          data = DateTime.fromMillisecondsSinceEpoch(json['created_at']);
+        } else {
+          data = DateTime.now();
+        }
+      } else {
+        data = DateTime.now();
+      }
+    } catch (e) {
+      data = DateTime.now();
+    }
+
     return Carga(
-      id: json['id'] ?? '',
-      empresaId: json['empresaId'],
-      empresaNome: json['empresaNome'],
-      origem: json['origem'],
-      destino: json['destino'],
+      id: json['id']?.toString() ?? '',
+      empresaId: json['empresaId']?.toString(),
+      empresaNome: json['empresaNome']?.toString(),
+      origem: json['origem']?.toString(),
+      destino: json['destino']?.toString(),
       peso: json['peso']?.toDouble(),
-      data: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
-      ),
-      status: json['status'] ?? 'pendente',
-      titulo: json['titulo'],
-      tipoCarga: json['tipoCarga'],
+      data: data,
+      status: json['status']?.toString() ?? 'pendente',
+      titulo: json['titulo']?.toString(),
+      tipoCarga: json['tipoCarga']?.toString(),
       avaliada: json['avaliada'] ?? false,
     );
   }

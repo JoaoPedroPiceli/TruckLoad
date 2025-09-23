@@ -7,32 +7,10 @@ const String kApiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://truckload-u4nu.onrender.com',
 );
 
-/// Cliente HTTP com timeout configurado
-final http.Client _httpClient = http.Client();
-
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
-
-  /// Fazer requisição HTTP com timeout
-  Future<http.Response> _makeRequest(
-    Future<http.Response> Function() request,
-  ) async {
-    try {
-      return await request().timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw Exception('Timeout: A requisição demorou muito para responder');
-        },
-      );
-    } catch (e) {
-      if (e.toString().contains('Timeout')) {
-        rethrow;
-      }
-      throw Exception('Erro de conexão: $e');
-    }
-  }
 
   /// Obter perfil completo do caminhoneiro com métricas
   Future<Map<String, dynamic>> getPerfilCaminhoneiro(String userId) async {
@@ -148,10 +126,10 @@ class ApiService {
   }
 
   /// Aceitar uma carga empresarial e vincular ao caminhoneiro
-  Future<Map<String, dynamic>> aceitarCargaEmpresa({
-    required String cargaEmpresaId,
-    required String caminhoneiroId,
-  }) async {
+  Future<Map<String, dynamic>> aceitarCargaEmpresa(
+    String cargaEmpresaId,
+    String caminhoneiroId,
+  ) async {
     try {
       final url = Uri.parse(
         '$kApiBaseUrl/cargas-empresa/$cargaEmpresaId/aceitar',
@@ -162,7 +140,7 @@ class ApiService {
         body: json.encode({'caminhoneiroId': caminhoneiroId}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201) {
         return json.decode(response.body);
       } else {
         throw Exception('Erro ${response.statusCode}: ${response.body}');
