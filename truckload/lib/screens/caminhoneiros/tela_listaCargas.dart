@@ -538,23 +538,39 @@ class _TelaListaCargasState extends State<TelaListaCargas> {
 
                       try {
                         final api = ApiService();
-                        final empresaId =
-                            (carga['empresaId'] ?? carga['_idEmpresa'] ?? '')
-                                .toString();
-                        final tituloCarga = (carga['titulo'] ?? 'Carga aceita')
-                            .toString();
+                        final cargaEmpresaId = (carga['id'] ?? carga['_id'])
+                            ?.toString();
 
-                        await api.criarCarga({
-                          'caminhoneiroId': widget.userId,
-                          if (empresaId.isNotEmpty) 'empresaId': empresaId,
-                          'status': 'aceita',
-                          'titulo': tituloCarga,
-                          'origem': carga['origem']?.toString(),
-                          'destino': carga['destino']?.toString(),
-                          'peso': carga['peso']?.toDouble(),
-                          'tipoCarga': carga['tipoCarga']?.toString(),
-                          'descricao': carga['descricao']?.toString(),
-                        });
+                        print('DEBUG LISTA: cargaEmpresaId = $cargaEmpresaId');
+                        print('DEBUG LISTA: carga data = $carga');
+
+                        if (cargaEmpresaId != null &&
+                            cargaEmpresaId.isNotEmpty) {
+                          print('DEBUG LISTA: Using aceitarCargaEmpresa');
+                          await api.aceitarCargaEmpresa(
+                            cargaEmpresaId,
+                            widget.userId,
+                          );
+                        } else {
+                          print('DEBUG LISTA: Using criarCarga fallback');
+                          final empresaId =
+                              (carga['empresaId'] ?? carga['_idEmpresa'] ?? '')
+                                  .toString();
+                          final tituloCarga = (carga['titulo'] ?? 'Carga aceita')
+                              .toString();
+
+                          await api.criarCarga({
+                            'caminhoneiroId': widget.userId,
+                            if (empresaId.isNotEmpty) 'empresaId': empresaId,
+                            'status': 'aceita',
+                            'titulo': tituloCarga,
+                            'origem': carga['origem']?.toString(),
+                            'destino': carga['destino']?.toString(),
+                            'peso': carga['peso']?.toDouble(),
+                            'tipoCarga': carga['tipoCarga']?.toString(),
+                            'descricao': carga['descricao']?.toString(),
+                          });
+                        }
 
                         if (!mounted) return;
                         Navigator.of(context).pop();

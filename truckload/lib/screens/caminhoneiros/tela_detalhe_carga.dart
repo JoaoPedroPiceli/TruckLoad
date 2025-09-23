@@ -114,13 +114,18 @@ class TelaDetalheCarga extends StatelessWidget {
                             final cargaEmpresaId = (carga['id'] ?? carga['_id'])
                                 ?.toString();
 
+                            print('DEBUG: cargaEmpresaId = $cargaEmpresaId');
+                            print('DEBUG: carga data = $carga');
+
                             if (cargaEmpresaId != null &&
                                 cargaEmpresaId.isNotEmpty) {
+                              print('DEBUG: Using aceitarCargaEmpresa');
                               await api.aceitarCargaEmpresa(
                                 cargaEmpresaId,
                                 userId,
                               );
                             } else {
+                              print('DEBUG: Using criarCarga fallback');
                               final empresaId =
                                   (carga['empresaId'] ??
                                           carga['empresa_id'] ??
