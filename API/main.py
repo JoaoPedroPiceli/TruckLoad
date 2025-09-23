@@ -1173,6 +1173,11 @@ def aceitar_carga_empresa(
         db.cargas_empresa.update_one({"_id": _id}, {"$set": {"status": "em_transito"}})
 
         # Cria carga vinculada ao caminhoneiro com dados completos
+        print(f"DEBUG API: doc data = {doc}")
+        print(f"DEBUG API: origem = {doc.get('origem')}")
+        print(f"DEBUG API: destino = {doc.get('destino')}")
+        print(f"DEBUG API: peso = {doc.get('peso')}")
+        
         carga_reg = {
             "caminhoneiroId": to_objid(caminhoneiro_id),
             "empresaId": doc.get("empresaId"),
@@ -1185,6 +1190,8 @@ def aceitar_carga_empresa(
             "tipoCarga": doc.get("tipoCarga"),
             "created_at": datetime.utcnow(),
         }
+        
+        print(f"DEBUG API: carga_reg = {carga_reg}")
         r = db.cargas.insert_one(carga_reg)
 
         return {"msg": "Carga aceita", "cargaId": str(r.inserted_id)}
