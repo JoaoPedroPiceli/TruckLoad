@@ -117,8 +117,13 @@ class TelaDetalheCarga extends StatelessWidget {
                             if (cargaEmpresaId != null &&
                                 cargaEmpresaId.isNotEmpty) {
                               await api.aceitarCargaEmpresa(
+<<<<<<< HEAD
                                 cargaEmpresaId,
                                 userId,
+=======
+                                cargaEmpresaId: cargaEmpresaId,
+                                caminhoneiroId: userId,
+>>>>>>> b6a42f1baca63803288e53c189d87d2950f01a15
                               );
                             } else {
                               final empresaId =

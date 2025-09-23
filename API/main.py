@@ -1200,6 +1200,7 @@ def listar_cargas_empresa(
     for c in cur:
         c["id"] = str(c.pop("_id"))
         c["empresaId"] = str(c["empresaId"])
+<<<<<<< HEAD
         
         # Buscar dados da empresa para incluir o nome
         empresa_id = c["empresaId"]
@@ -1209,6 +1210,8 @@ def listar_cargas_empresa(
         else:
             c["empresaNome"] = "Empresa não encontrada"
         
+=======
+>>>>>>> b6a42f1baca63803288e53c189d87d2950f01a15
         out.append(c)
     return out
 
@@ -1219,6 +1222,7 @@ def obter_carga_empresa(id: str = Path(..., description="ObjectId da carga empre
         raise HTTPException(status_code=404, detail="Carga empresarial não encontrada")
     doc["id"] = str(doc.pop("_id"))
     doc["empresaId"] = str(doc["empresaId"])
+<<<<<<< HEAD
     
     # Buscar dados da empresa para incluir o nome
     empresa_id = doc["empresaId"]
@@ -1228,6 +1232,8 @@ def obter_carga_empresa(id: str = Path(..., description="ObjectId da carga empre
     else:
         doc["empresaNome"] = "Empresa não encontrada"
     
+=======
+>>>>>>> b6a42f1baca63803288e53c189d87d2950f01a15
     return doc
 
 @app.patch("/cargas-empresa/{id}")
@@ -1275,6 +1281,7 @@ def buscar_cargas_disponiveis(
         for c in cur:
             c["id"] = str(c.pop("_id"))
             c["empresaId"] = str(c["empresaId"])
+<<<<<<< HEAD
             
             # Buscar dados da empresa para incluir o nome
             empresa_id = c["empresaId"]
@@ -1284,6 +1291,8 @@ def buscar_cargas_disponiveis(
             else:
                 c["empresaNome"] = "Empresa não encontrada"
             
+=======
+>>>>>>> b6a42f1baca63803288e53c189d87d2950f01a15
             out.append(c)
         return out
     
@@ -1324,6 +1333,7 @@ def buscar_cargas_disponiveis(
     for c in cur:
         c["id"] = str(c.pop("_id"))
         c["empresaId"] = str(c["empresaId"])
+<<<<<<< HEAD
         
         # Buscar dados da empresa para incluir o nome
         empresa_id = c["empresaId"]
@@ -1333,6 +1343,8 @@ def buscar_cargas_disponiveis(
         else:
             c["empresaNome"] = "Empresa não encontrada"
         
+=======
+>>>>>>> b6a42f1baca63803288e53c189d87d2950f01a15
         out.append(c)
     return out
 
