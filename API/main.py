@@ -1275,7 +1275,6 @@ def buscar_cargas_disponiveis(
         for c in cur:
             c["id"] = str(c.pop("_id"))
             c["empresaId"] = str(c["empresaId"])
-<<<<<<< HEAD
             
             # Buscar dados da empresa para incluir o nome
             empresa_id = c["empresaId"]
@@ -1285,8 +1284,6 @@ def buscar_cargas_disponiveis(
             else:
                 c["empresaNome"] = "Empresa não encontrada"
             
-=======
->>>>>>> b6a42f1baca63803288e53c189d87d2950f01a15
             out.append(c)
         return out
     
