@@ -1,3 +1,5 @@
+# Ignore Flutter SDK vendored inside repo
+flutter/
 # Python
 venv/
 __pycache__/
