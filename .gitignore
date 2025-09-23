@@ -1,0 +1,22 @@
+# Ignore Flutter SDK vendored inside repo
+flutter/
+# Python
+venv/
+__pycache__/
+*.py[cod]
+
+# Secrets
+.env
+
+# Flutter/Dart
+truckload/.dart_tool/
+truckload/build/
+truckload/.flutter-plugins
+truckload/.flutter-plugins-dependencies
+truckload/.packages
+truckload/.metadata
+
+# SO / IDE
+.DS_Store
+.idea/
+.vscode/
