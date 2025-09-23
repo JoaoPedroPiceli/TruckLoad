@@ -1105,6 +1105,17 @@ def listar_cargas(
         c["caminhoneiroId"] = str(c["caminhoneiroId"])
         if c.get("empresaId"):
             c["empresaId"] = str(c["empresaId"])
+            
+            # Buscar dados da empresa para incluir o nome
+            empresa_id = c["empresaId"]
+            empresa = db.empresas.find_one({"_id": to_objid(empresa_id)})
+            if empresa:
+                c["empresaNome"] = empresa.get("nome", "Empresa não informada")
+            else:
+                c["empresaNome"] = "Empresa não encontrada"
+        else:
+            c["empresaNome"] = "Empresa não informada"
+        
         out.append(c)
     return out
 
