@@ -1111,8 +1111,9 @@ def listar_cargas(
         if "cargas_aceitas" not in collections:
             return []
         
-        # Buscar cargas do caminhoneiro
-        q = {"caminhoneiroId": to_objid(caminhoneiroId)}
+        # Buscar cargas do caminhoneiro usando ObjectId diretamente
+        from bson import ObjectId
+        q = {"caminhoneiroId": ObjectId(caminhoneiroId)}
         cur = db.cargas_aceitas.find(q).sort("created_at", -1).skip(skip).limit(limit)
         
         out: List[dict] = []
@@ -1153,18 +1154,39 @@ def listar_cargas(
 @app.patch("/cargas/{id}")
 def atualizar_carga(id: str, payload: CargaUpdate = Body(...)):
     """Atualiza status de uma carga aceita (ex: concluir, cancelar)"""
-    update = {k: v for k, v in payload.dict(exclude_unset=True).items()}
-    if not update:
-        raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
-    res = db.cargas_aceitas.update_one({"_id": to_objid(id)}, {"$set": update})
-    if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Carga não encontrada")
-    c = db.cargas_aceitas.find_one({"_id": to_objid(id)})
-    c["id"] = str(c.pop("_id"))
-    c["caminhoneiroId"] = str(c["caminhoneiroId"])
-    if c.get("empresaId"):
-        c["empresaId"] = str(c["empresaId"])
-    return c
+    try:
+        from bson import ObjectId
+        
+        update = {k: v for k, v in payload.dict(exclude_unset=True).items()}
+        if not update:
+            raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+        
+        # Usar ObjectId diretamente para evitar erro 500
+        object_id = ObjectId(id)
+        res = db.cargas_aceitas.update_one({"_id": object_id}, {"$set": update})
+        
+        if res.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Carga não encontrada")
+        
+        # Buscar carga atualizada
+        c = db.cargas_aceitas.find_one({"_id": object_id})
+        if not c:
+            raise HTTPException(status_code=404, detail="Carga não encontrada após atualização")
+        
+        # Converter ObjectIds para strings de forma segura
+        c["id"] = str(c.pop("_id"))
+        c["caminhoneiroId"] = str(c["caminhoneiroId"])
+        
+        if c.get("empresaId"):
+            c["empresaId"] = str(c["empresaId"])
+        
+        if c.get("cargaEmpresaId"):
+            c["cargaEmpresaId"] = str(c["cargaEmpresaId"])
+        
+        return c
+    except Exception as e:
+        print(f"Erro no endpoint PATCH /cargas/{id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 # =============================================================================
 # Cargas Empresariais
