@@ -78,10 +78,20 @@ class ApiService {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.cast<Map<String, dynamic>>();
+      } else if (response.statusCode == 400) {
+        // ID inválido - retorna lista vazia em vez de erro
+        return [];
       } else {
         throw Exception('Erro ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
+      // Se for erro de conexão ou outro problema, tenta novamente
+      if (e.toString().contains('Connection') ||
+          e.toString().contains('Socket')) {
+        throw Exception(
+          'Erro de conexão. Verifique sua internet e tente novamente.',
+        );
+      }
       throw Exception('Falha ao carregar cargas: $e');
     }
   }
@@ -97,10 +107,20 @@ class ApiService {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.cast<Map<String, dynamic>>();
+      } else if (response.statusCode == 400) {
+        // ID inválido - retorna lista vazia em vez de erro
+        return [];
       } else {
         throw Exception('Erro ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
+      // Se for erro de conexão ou outro problema, tenta novamente
+      if (e.toString().contains('Connection') ||
+          e.toString().contains('Socket')) {
+        throw Exception(
+          'Erro de conexão. Verifique sua internet e tente novamente.',
+        );
+      }
       throw Exception('Falha ao carregar avaliações: $e');
     }
   }

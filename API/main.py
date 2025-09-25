@@ -1065,7 +1065,12 @@ def listar_avaliacoes(
 ):
     q = {}
     if caminhoneiroId:
-        q["caminhoneiroId"] = to_objid(caminhoneiroId)
+        try:
+            q["caminhoneiroId"] = to_objid(caminhoneiroId)
+        except HTTPException:
+            # Se o ID for inválido, retorna lista vazia em vez de erro
+            return []
+    
     cur = db.avaliacoes.find(q).sort("created_at", -1).skip(skip).limit(limit)
     out: List[dict] = []
     for a in cur:
@@ -1097,7 +1102,12 @@ def listar_cargas(
 ):
     q = {}
     if caminhoneiroId:
-        q["caminhoneiroId"] = to_objid(caminhoneiroId)
+        try:
+            q["caminhoneiroId"] = to_objid(caminhoneiroId)
+        except HTTPException:
+            # Se o ID for inválido, retorna lista vazia em vez de erro
+            return []
+    
     cur = db.cargas.find(q).sort("created_at", -1).skip(skip).limit(limit)
     out: List[dict] = []
     for c in cur:
@@ -1108,10 +1118,13 @@ def listar_cargas(
             
             # Buscar dados da empresa para incluir o nome
             empresa_id = c["empresaId"]
-            empresa = db.empresas.find_one({"_id": to_objid(empresa_id)})
-            if empresa:
-                c["empresaNome"] = empresa.get("nome", "Empresa não informada")
-            else:
+            try:
+                empresa = db.empresas.find_one({"_id": to_objid(empresa_id)})
+                if empresa:
+                    c["empresaNome"] = empresa.get("nome", "Empresa não informada")
+                else:
+                    c["empresaNome"] = "Empresa não encontrada"
+            except HTTPException:
                 c["empresaNome"] = "Empresa não encontrada"
         else:
             c["empresaNome"] = "Empresa não informada"

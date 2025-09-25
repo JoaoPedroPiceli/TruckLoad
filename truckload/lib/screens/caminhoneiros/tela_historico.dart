@@ -91,50 +91,95 @@ class _TelaHistoricoState extends State<TelaHistorico> {
         title: const Text('Minhas Cargas'),
         backgroundColor: const Color(0xFFB0CCE5),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cargas Aceitas
-              if (aceitas.isNotEmpty) ...[
-                Text(
-                  'Cargas aceitas',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.blue[700],
-                    fontWeight: FontWeight.w600,
+      body: _cargas.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nenhuma carga encontrada',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Column(
-                  children: aceitas
-                      .map((carga) => cargaCard(context, carga, futuro: false))
-                      .toList(),
-                ),
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Você ainda não possui cargas registradas.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Voltar ao Menu'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(12),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Cargas Aceitas
+                    if (aceitas.isNotEmpty) ...[
+                      Text(
+                        'Cargas aceitas',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Column(
+                        children: aceitas
+                            .map(
+                              (carga) =>
+                                  cargaCard(context, carga, futuro: false),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
 
-              // Cargas realizadas
-              Text(
-                'Cargas realizadas',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.blue[700],
-                  fontWeight: FontWeight.w600,
+                    // Cargas realizadas
+                    Text(
+                      'Cargas realizadas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                      children: concluidas
+                          .map(
+                            (carga) => cargaCard(context, carga, futuro: false),
+                          )
+                          .toList(),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Column(
-                children: concluidas
-                    .map((carga) => cargaCard(context, carga, futuro: false))
-                    .toList(),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
