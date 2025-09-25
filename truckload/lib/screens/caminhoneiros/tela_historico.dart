@@ -41,6 +41,12 @@ class _TelaHistoricoState extends State<TelaHistorico> {
           _cargas = cargas;
           _loading = false;
         });
+        
+        // Forçar rebuild adicional para garantir atualização
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) {
+          setState(() {});
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -250,7 +256,7 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                                 'status': 'cancelada_pelo_motorista',
                               });
                               if (!mounted) return;
-                              
+
                               // Mostrar mensagem de sucesso
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -262,9 +268,16 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                               // Recarregar dados imediatamente
                               await _carregarCargas();
                               
-                              // Forçar rebuild da tela
+                              // Aguardar um pouco para garantir que a API processou
+                              await Future.delayed(const Duration(milliseconds: 500));
+                              
+                              // Forçar rebuild múltiplo da tela
                               if (mounted) {
                                 setState(() {});
+                                await Future.delayed(const Duration(milliseconds: 100));
+                                if (mounted) {
+                                  setState(() {});
+                                }
                               }
                             } catch (e) {
                               if (!mounted) return;
@@ -293,7 +306,7 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                                 'status': 'concluida',
                               });
                               if (!mounted) return;
-                              
+
                               // Mostrar mensagem de sucesso
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -305,9 +318,16 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                               // Recarregar dados imediatamente
                               await _carregarCargas();
                               
-                              // Forçar rebuild da tela
+                              // Aguardar um pouco para garantir que a API processou
+                              await Future.delayed(const Duration(milliseconds: 500));
+                              
+                              // Forçar rebuild múltiplo da tela
                               if (mounted) {
                                 setState(() {});
+                                await Future.delayed(const Duration(milliseconds: 100));
+                                if (mounted) {
+                                  setState(() {});
+                                }
                               }
                             } catch (e) {
                               if (!mounted) return;
