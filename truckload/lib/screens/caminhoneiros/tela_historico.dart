@@ -261,6 +261,11 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                               
                               // Recarregar dados imediatamente
                               await _carregarCargas();
+                              
+                              // Forçar rebuild da tela
+                              if (mounted) {
+                                setState(() {});
+                              }
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -299,6 +304,11 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                               
                               // Recarregar dados imediatamente
                               await _carregarCargas();
+                              
+                              // Forçar rebuild da tela
+                              if (mounted) {
+                                setState(() {});
+                              }
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
