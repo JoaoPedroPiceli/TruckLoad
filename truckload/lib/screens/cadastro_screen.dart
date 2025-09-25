@@ -59,7 +59,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
   bool _telefoneValido(String telefone) {
     final d = _soDigitos(telefone);
-    return d.length == 10 || d.length == 11;
+    return (d.length == 10 || d.length == 11);
   }
 
   bool _cpfValido(String cpf) {
@@ -343,10 +343,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               const SizedBox(height: 12),
               // Logo do TruckLoad
               Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blueAccent, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
                 padding: const EdgeInsets.all(16),
                 child: Image.asset('assets/logo.png', height: 60),
               ),

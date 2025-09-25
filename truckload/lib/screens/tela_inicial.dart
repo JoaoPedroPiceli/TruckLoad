@@ -15,11 +15,7 @@ class TelaInicial extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo com borda
               Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blueAccent, width: 2),
-                ),
                 padding: const EdgeInsets.all(16.0),
                 child: Image.asset(
                   'assets/logo.png',
