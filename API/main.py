@@ -1102,33 +1102,48 @@ def listar_cargas(
 ):
     """Lista cargas aceitas (histórico) do caminhoneiro"""
     try:
-        q = {}
-        if caminhoneiroId:
-            try:
-                q["caminhoneiroId"] = to_objid(caminhoneiroId)
-            except HTTPException:
-                return []
+        # Se não há caminhoneiroId, retorna lista vazia
+        if not caminhoneiroId:
+            return []
         
+        # Verificar se a coleção existe
+        collections = db.list_collection_names()
+        if "cargas_aceitas" not in collections:
+            return []
+        
+        # Buscar cargas do caminhoneiro
+        q = {"caminhoneiroId": to_objid(caminhoneiroId)}
         cur = db.cargas_aceitas.find(q).sort("created_at", -1).skip(skip).limit(limit)
-        out: List[dict] = []
         
+        out: List[dict] = []
         for c in cur:
-            # Converter ObjectId para string de forma segura
-            c["id"] = str(c.pop("_id"))
-            c["caminhoneiroId"] = str(c["caminhoneiroId"])
+            # Criar novo dicionário para evitar problemas de serialização
+            carga = {
+                "id": str(c["_id"]),
+                "caminhoneiroId": str(c["caminhoneiroId"]),
+                "status": c.get("status", "aceita"),
+                "titulo": c.get("titulo", "Carga"),
+                "origem": c.get("origem", ""),
+                "destino": c.get("destino", ""),
+                "peso": c.get("peso", 0),
+                "preco": c.get("preco", 0),
+                "tipoCarga": c.get("tipoCarga", ""),
+                "descricao": c.get("descricao", ""),
+                "data": c.get("data", ""),
+                "created_at": c.get("created_at", ""),
+                "avaliada": c.get("avaliada", False),
+                "empresaNome": "Empresa não informada"
+            }
             
-            # Converter empresaId se existir
+            # Adicionar empresaId se existir
             if c.get("empresaId"):
-                c["empresaId"] = str(c["empresaId"])
-                c["empresaNome"] = "Empresa não informada"  # Simplificado por enquanto
-            else:
-                c["empresaNome"] = "Empresa não informada"
+                carga["empresaId"] = str(c["empresaId"])
             
-            # Converter outros ObjectIds se existirem
+            # Adicionar cargaEmpresaId se existir
             if c.get("cargaEmpresaId"):
-                c["cargaEmpresaId"] = str(c["cargaEmpresaId"])
+                carga["cargaEmpresaId"] = str(c["cargaEmpresaId"])
             
-            out.append(c)
+            out.append(carga)
         
         return out
     except Exception as e:
