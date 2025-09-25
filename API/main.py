@@ -1101,37 +1101,45 @@ def listar_cargas(
     skip: int = 0,
 ):
     """Lista cargas aceitas (histórico) do caminhoneiro"""
-    q = {}
-    if caminhoneiroId:
-        try:
-            q["caminhoneiroId"] = to_objid(caminhoneiroId)
-        except HTTPException:
-            # Se o ID for inválido, retorna lista vazia em vez de erro
-            return []
-    
-    cur = db.cargas_aceitas.find(q).sort("created_at", -1).skip(skip).limit(limit)
-    out: List[dict] = []
-    for c in cur:
-        c["id"] = str(c.pop("_id"))
-        c["caminhoneiroId"] = str(c["caminhoneiroId"])
-        if c.get("empresaId"):
-            c["empresaId"] = str(c["empresaId"])
-            
-            # Buscar dados da empresa para incluir o nome
-            empresa_id = c["empresaId"]
+    try:
+        q = {}
+        if caminhoneiroId:
             try:
-                empresa = db.empresas.find_one({"_id": ObjectId(empresa_id)})
-                if empresa:
-                    c["empresaNome"] = empresa.get("nome", "Empresa não informada")
-                else:
-                    c["empresaNome"] = "Empresa não encontrada"
-            except Exception:
-                c["empresaNome"] = "Empresa não encontrada"
-        else:
-            c["empresaNome"] = "Empresa não informada"
+                q["caminhoneiroId"] = to_objid(caminhoneiroId)
+            except HTTPException:
+                # Se o ID for inválido, retorna lista vazia em vez de erro
+                return []
         
-        out.append(c)
-    return out
+        # Verificar se a coleção existe, se não existir, retorna lista vazia
+        if "cargas_aceitas" not in db.list_collection_names():
+            return []
+        
+        cur = db.cargas_aceitas.find(q).sort("created_at", -1).skip(skip).limit(limit)
+        out: List[dict] = []
+        for c in cur:
+            c["id"] = str(c.pop("_id"))
+            c["caminhoneiroId"] = str(c["caminhoneiroId"])
+            if c.get("empresaId"):
+                c["empresaId"] = str(c["empresaId"])
+                
+                # Buscar dados da empresa para incluir o nome
+                empresa_id = c["empresaId"]
+                try:
+                    empresa = db.empresas.find_one({"_id": ObjectId(empresa_id)})
+                    if empresa:
+                        c["empresaNome"] = empresa.get("nome", "Empresa não informada")
+                    else:
+                        c["empresaNome"] = "Empresa não encontrada"
+                except Exception:
+                    c["empresaNome"] = "Empresa não encontrada"
+            else:
+                c["empresaNome"] = "Empresa não informada"
+            
+            out.append(c)
+        return out
+    except Exception as e:
+        print(f"Erro no endpoint /cargas/: {e}")
+        return []
 
 @app.patch("/cargas/{id}")
 def atualizar_carga(id: str, payload: CargaUpdate = Body(...)):
@@ -1205,8 +1213,14 @@ def aceitar_carga_empresa(
             "created_at": datetime.utcnow(),
         }
         
-        r = db.cargas_aceitas.insert_one(carga_aceita)
-        return {"msg": "Carga aceita com sucesso", "cargaId": str(r.inserted_id)}
+        try:
+            r = db.cargas_aceitas.insert_one(carga_aceita)
+            return {"msg": "Carga aceita com sucesso", "cargaId": str(r.inserted_id)}
+        except Exception as e:
+            print(f"Erro ao inserir carga aceita: {e}")
+            # Se falhar, recria a carga na tabela original
+            db.cargas_empresa.insert_one(doc)
+            raise HTTPException(status_code=500, detail="Erro interno ao aceitar carga")
     except HTTPException:
         raise
     except Exception as e:
