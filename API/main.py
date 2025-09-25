@@ -1118,6 +1118,17 @@ def listar_cargas(
         
         out: List[dict] = []
         for c in cur:
+            # Buscar dados da empresa
+            empresa_nome = "Empresa não informada"
+            if c.get("empresaId"):
+                try:
+                    empresa = db.empresas.find_one({"_id": c["empresaId"]})
+                    if empresa:
+                        empresa_nome = empresa.get("nome", "Empresa não informada")
+                except Exception as e:
+                    print(f"Erro ao buscar empresa: {e}")
+                    empresa_nome = "Empresa não informada"
+            
             # Criar novo dicionário para evitar problemas de serialização
             carga = {
                 "id": str(c["_id"]),
@@ -1133,7 +1144,7 @@ def listar_cargas(
                 "data": c.get("data", ""),
                 "created_at": c.get("created_at", ""),
                 "avaliada": c.get("avaliada", False),
-                "empresaNome": "Empresa não informada"
+                "empresaNome": empresa_nome
             }
             
             # Adicionar empresaId se existir
