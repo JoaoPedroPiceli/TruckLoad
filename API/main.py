@@ -1119,12 +1119,12 @@ def listar_cargas(
             # Buscar dados da empresa para incluir o nome
             empresa_id = c["empresaId"]
             try:
-                empresa = db.empresas.find_one({"_id": to_objid(empresa_id)})
+                empresa = db.empresas.find_one({"_id": ObjectId(empresa_id)})
                 if empresa:
                     c["empresaNome"] = empresa.get("nome", "Empresa não informada")
                 else:
                     c["empresaNome"] = "Empresa não encontrada"
-            except HTTPException:
+            except Exception:
                 c["empresaNome"] = "Empresa não encontrada"
         else:
             c["empresaNome"] = "Empresa não informada"
@@ -1234,10 +1234,13 @@ def listar_cargas_empresa(
         
         # Buscar dados da empresa para incluir o nome
         empresa_id = c["empresaId"]
-        empresa = db.empresas.find_one({"_id": to_objid(empresa_id)})
-        if empresa:
-            c["empresaNome"] = empresa.get("nome", "Empresa não informada")
-        else:
+        try:
+            empresa = db.empresas.find_one({"_id": ObjectId(empresa_id)})
+            if empresa:
+                c["empresaNome"] = empresa.get("nome", "Empresa não informada")
+            else:
+                c["empresaNome"] = "Empresa não encontrada"
+        except Exception:
             c["empresaNome"] = "Empresa não encontrada"
         
         out.append(c)
@@ -1309,7 +1312,7 @@ def buscar_cargas_disponiveis(
             
             # Buscar dados da empresa para incluir o nome
             empresa_id = c["empresaId"]
-            empresa = db.empresas.find_one({"_id": to_objid(empresa_id)})
+            empresa = db.empresas.find_one({"_id": ObjectId(empresa_id)})
             if empresa:
                 c["empresaNome"] = empresa.get("nome", "Empresa não informada")
             else:
@@ -1358,10 +1361,13 @@ def buscar_cargas_disponiveis(
         
         # Buscar dados da empresa para incluir o nome
         empresa_id = c["empresaId"]
-        empresa = db.empresas.find_one({"_id": to_objid(empresa_id)})
-        if empresa:
-            c["empresaNome"] = empresa.get("nome", "Empresa não informada")
-        else:
+        try:
+            empresa = db.empresas.find_one({"_id": ObjectId(empresa_id)})
+            if empresa:
+                c["empresaNome"] = empresa.get("nome", "Empresa não informada")
+            else:
+                c["empresaNome"] = "Empresa não encontrada"
+        except Exception:
             c["empresaNome"] = "Empresa não encontrada"
         
         out.append(c)
