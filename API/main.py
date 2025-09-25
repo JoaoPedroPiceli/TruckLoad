@@ -1100,6 +1100,7 @@ def listar_cargas(
     limit: int = 200,
     skip: int = 0,
 ):
+    """Lista cargas aceitas (histórico) do caminhoneiro"""
     q = {}
     if caminhoneiroId:
         try:
@@ -1108,7 +1109,7 @@ def listar_cargas(
             # Se o ID for inválido, retorna lista vazia em vez de erro
             return []
     
-    cur = db.cargas.find(q).sort("created_at", -1).skip(skip).limit(limit)
+    cur = db.cargas_aceitas.find(q).sort("created_at", -1).skip(skip).limit(limit)
     out: List[dict] = []
     for c in cur:
         c["id"] = str(c.pop("_id"))
@@ -1134,13 +1135,14 @@ def listar_cargas(
 
 @app.patch("/cargas/{id}")
 def atualizar_carga(id: str, payload: CargaUpdate = Body(...)):
+    """Atualiza status de uma carga aceita (ex: concluir, cancelar)"""
     update = {k: v for k, v in payload.dict(exclude_unset=True).items()}
     if not update:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
-    res = db.cargas.update_one({"_id": to_objid(id)}, {"$set": update})
+    res = db.cargas_aceitas.update_one({"_id": to_objid(id)}, {"$set": update})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Carga não encontrada")
-    c = db.cargas.find_one({"_id": to_objid(id)})
+    c = db.cargas_aceitas.find_one({"_id": to_objid(id)})
     c["id"] = str(c.pop("_id"))
     c["caminhoneiroId"] = str(c["caminhoneiroId"])
     if c.get("empresaId"):
@@ -1164,8 +1166,8 @@ def aceitar_carga_empresa(
     payload: dict = Body(...),
 ):
     """Aceita uma carga empresarial disponível, vinculando a um caminhoneiro.
-    - Atualiza status da carga empresarial para 'em_transito'
-    - Cria um registro em 'cargas' com status 'aceita' vinculado ao caminhoneiro
+    - Remove a carga da tabela cargas_empresa (disponíveis)
+    - Cria um registro na tabela cargas_aceitas
     """
     caminhoneiro_id = (payload or {}).get("caminhoneiroId")
     if not caminhoneiro_id:
@@ -1182,16 +1184,11 @@ def aceitar_carga_empresa(
         if status_atual != "disponivel":
             raise HTTPException(status_code=400, detail="Carga não está disponível para aceitação")
 
-        # Atualiza status para em_transito
-        db.cargas_empresa.update_one({"_id": _id}, {"$set": {"status": "em_transito"}})
+        # Remove a carga da tabela de disponíveis
+        db.cargas_empresa.delete_one({"_id": _id})
 
-        # Cria carga vinculada ao caminhoneiro com dados completos
-        print(f"DEBUG API: doc data = {doc}")
-        print(f"DEBUG API: origem = {doc.get('origem')}")
-        print(f"DEBUG API: destino = {doc.get('destino')}")
-        print(f"DEBUG API: peso = {doc.get('peso')}")
-        
-        carga_reg = {
+        # Cria carga aceita na nova tabela
+        carga_aceita = {
             "caminhoneiroId": to_objid(caminhoneiro_id),
             "empresaId": doc.get("empresaId"),
             "cargaEmpresaId": _id,
@@ -1200,14 +1197,16 @@ def aceitar_carga_empresa(
             "origem": doc.get("origem"),
             "destino": doc.get("destino"),
             "peso": doc.get("peso"),
+            "preco": doc.get("preco"),
             "tipoCarga": doc.get("tipoCarga"),
+            "descricao": doc.get("descricao"),
+            "regras": doc.get("regras"),
+            "data": doc.get("data"),
             "created_at": datetime.utcnow(),
         }
         
-        print(f"DEBUG API: carga_reg = {carga_reg}")
-        r = db.cargas.insert_one(carga_reg)
-
-        return {"msg": "Carga aceita", "cargaId": str(r.inserted_id)}
+        r = db.cargas_aceitas.insert_one(carga_aceita)
+        return {"msg": "Carga aceita com sucesso", "cargaId": str(r.inserted_id)}
     except HTTPException:
         raise
     except Exception as e:
