@@ -25,6 +25,8 @@ class _TelaHistoricoState extends State<TelaHistorico> {
   }
 
   Future<void> _carregarCargas() async {
+    if (!mounted) return;
+    
     setState(() {
       _loading = true;
       _error = null;
@@ -34,15 +36,19 @@ class _TelaHistoricoState extends State<TelaHistorico> {
       final cargasData = await _apiService.getCargasCaminhoneiro(widget.userId);
       final cargas = cargasData.map((json) => Carga.fromJson(json)).toList();
 
-      setState(() {
-        _cargas = cargas;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _cargas = cargas;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -244,13 +250,17 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                                 'status': 'cancelada_pelo_motorista',
                               });
                               if (!mounted) return;
+                              
+                              // Mostrar mensagem de sucesso
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Carga cancelada!'),
                                   backgroundColor: Colors.orange,
                                 ),
                               );
-                              _carregarCargas();
+                              
+                              // Recarregar dados imediatamente
+                              await _carregarCargas();
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -278,13 +288,17 @@ class _TelaHistoricoState extends State<TelaHistorico> {
                                 'status': 'concluida',
                               });
                               if (!mounted) return;
+                              
+                              // Mostrar mensagem de sucesso
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Carga concluída!'),
                                   backgroundColor: Colors.green,
                                 ),
                               );
-                              _carregarCargas();
+                              
+                              // Recarregar dados imediatamente
+                              await _carregarCargas();
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
